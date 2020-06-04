@@ -196,6 +196,17 @@ func ConvertToProtoScenarioResult(scenarioResult *result.ScenarioResult) *gauge_
 	}
 }
 
+func ConvertToProtoConceptResult(conceptResult *result.ConceptResult) *gauge_messages.ProtoConceptResult {
+	return &gauge_messages.ProtoConceptResult{
+		ProtoItem: &gauge_messages.ProtoItem{
+			ItemType: gauge_messages.ProtoItem_Concept,
+			Concept:  conceptResult.ProtoConcept,
+		},
+		ExecutionTime: conceptResult.ExecTime(),
+		Timestamp:     time.Now().Format(time.RFC3339),
+	}
+}
+
 func ConvertToProtoStepResult(stepResult *result.StepResult) *gauge_messages.ProtoStepResult {
 	return &gauge_messages.ProtoStepResult{
 		ProtoItem: &gauge_messages.ProtoItem{

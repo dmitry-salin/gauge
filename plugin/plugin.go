@@ -442,6 +442,10 @@ func (p *plugin) invokeService(m *gauge_messages.Message) error {
 		_, err = p.ReporterClient.NotifyScenarioExecutionEnding(ctx, m.GetScenarioExecutionEndingRequest())
 	case gauge_messages.Message_ScenarioExecutionStarting:
 		_, err = p.ReporterClient.NotifyScenarioExecutionStarting(ctx, m.GetScenarioExecutionStartingRequest())
+	case gauge_messages.Message_ConceptExecutionEnding:
+		_, err = p.ReporterClient.NotifyConceptExecutionEnding(ctx, m.GetConceptExecutionEndingRequest())
+	case gauge_messages.Message_ConceptExecutionStarting:
+		_, err = p.ReporterClient.NotifyConceptExecutionStarting(ctx, m.GetConceptExecutionStartingRequest())
 	case gauge_messages.Message_StepExecutionEnding:
 		_, err = p.ReporterClient.NotifyStepExecutionEnding(ctx, m.GetStepExecutionEndingRequest())
 	case gauge_messages.Message_StepExecutionStarting:

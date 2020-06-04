@@ -172,6 +172,7 @@ func (e *scenarioExecutor) executeStep(step *gauge.Step, protoItem *gauge_messag
 
 func (e *scenarioExecutor) executeConcept(item *gauge.Step, protoConcept *gauge_messages.ProtoConcept, scenarioResult *result.ScenarioResult) *result.ConceptResult {
 	cptResult := result.NewConceptResult(protoConcept)
+	e.notifyConceptStarting(cptResult)
 	event.Notify(event.NewExecutionEvent(event.ConceptStart, item, nil, e.stream, *e.currentExecutionInfo))
 	defer event.Notify(event.NewExecutionEvent(event.ConceptEnd, nil, cptResult, e.stream, *e.currentExecutionInfo))
 
@@ -186,11 +187,13 @@ func (e *scenarioExecutor) executeConcept(item *gauge.Step, protoConcept *gauge_
 				if recoverable {
 					continue
 				}
+				e.notifyConceptEnding(cptResult)
 				return cptResult
 			}
 		}
 	}
 	cptResult.UpdateConceptExecResult()
+	e.notifyConceptEnding(cptResult)
 	return cptResult
 }
 
@@ -212,4 +215,28 @@ func getParameters(fragments []*gauge_messages.Fragment) []*gauge_messages.Param
 func setScenarioFailure(executionInfo *gauge_messages.ExecutionInfo) {
 	setSpecFailure(executionInfo)
 	executionInfo.CurrentScenario.IsFailed = true
+}
+
+func (e *scenarioExecutor) notifyConceptStarting(conceptResult *result.ConceptResult) {
+	m := &gauge_messages.Message{
+		MessageType: gauge_messages.Message_ConceptExecutionStarting,
+		ConceptExecutionStartingRequest: &gauge_messages.ConceptExecutionStartingRequest{
+			CurrentExecutionInfo: e.currentExecutionInfo,
+			ConceptResult:        gauge.ConvertToProtoConceptResult(conceptResult),
+			Stream:               int32(e.stream)},
+	}
+
+	e.pluginHandler.NotifyPlugins(m)
+}
+
+func (e *scenarioExecutor) notifyConceptEnding(conceptResult *result.ConceptResult) {
+	m := &gauge_messages.Message{
+		MessageType: gauge_messages.Message_ConceptExecutionEnding,
+		ConceptExecutionEndingRequest: &gauge_messages.ConceptExecutionEndingRequest{
+			CurrentExecutionInfo: e.currentExecutionInfo,
+			ConceptResult:        gauge.ConvertToProtoConceptResult(conceptResult),
+			Stream:               int32(e.stream)},
+	}
+
+	e.pluginHandler.NotifyPlugins(m)
 }
