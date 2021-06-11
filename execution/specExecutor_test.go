@@ -99,7 +99,7 @@ func (s *MySuite) TestToGetDataTableRowsRangeFromInputFlag(c *C) {
 func (s *MySuite) TestCreateSkippedSpecResult(c *C) {
 	spec := &gauge.Specification{Heading: &gauge.Heading{LineNo: 0, Value: "SPEC_HEADING"}, FileName: "FILE"}
 
-	se := newSpecExecutor(spec, nil, nil, nil, 0)
+	se := newSpecExecutor(spec, nil, nil, nil, nil, 0)
 	se.errMap = getValidationErrorMap()
 	se.specResult = &result.SpecResult{}
 	se.skipSpecForError(fmt.Errorf("ERROR"))
@@ -110,7 +110,7 @@ func (s *MySuite) TestCreateSkippedSpecResult(c *C) {
 }
 
 func (s *MySuite) TestCreateSkippedSpecResultWithScenarios(c *C) {
-	se := newSpecExecutor(anySpec(), nil, nil, nil, 0)
+	se := newSpecExecutor(anySpec(), nil, nil, nil, nil, 0)
 	se.errMap = getValidationErrorMap()
 	se.specResult = &result.SpecResult{ProtoSpec: &gauge_messages.ProtoSpec{}}
 	se.skipSpecForError(fmt.Errorf("ERROR"))
@@ -139,7 +139,7 @@ func (s *MySuite) TestSpecIsSkippedIfDataRangeIsInvalid(c *C) {
 	}
 	spec := anySpec()
 	errMap.SpecErrs[spec] = []error{validation.NewSpecValidationError("Table row number out of range", spec.FileName)}
-	se := newSpecExecutor(spec, nil, nil, errMap, 0)
+	se := newSpecExecutor(spec, nil, nil, nil, errMap, 0)
 
 	specResult := se.execute(true, false, false)
 	c.Assert(specResult.Skipped, Equals, true)
@@ -168,7 +168,7 @@ func (s *MySuite) TestDataTableRowsAreSkippedForUnimplemetedStep(c *C) {
 
 	errMap.SpecErrs[spec] = []error{validation.NewSpecValidationError("Step implementation not found", spec.FileName)}
 	errMap.ScenarioErrs[spec.Scenarios[0]] = []error{validation.NewSpecValidationError("Step implementation not found", spec.FileName)}
-	se := newSpecExecutor(spec, nil, nil, errMap, 0)
+	se := newSpecExecutor(spec, nil, nil, nil, errMap, 0)
 
 	specResult := se.execute(true, true, true)
 	c.Assert(specResult.ProtoSpec.GetIsTableDriven(), Equals, true)
@@ -178,7 +178,7 @@ func (s *MySuite) TestDataTableRowsAreSkippedForUnimplemetedStep(c *C) {
 func (s *MySuite) TestConvertParseErrorToGaugeMessagesError(c *C) {
 	spec := &gauge.Specification{Heading: &gauge.Heading{LineNo: 0, Value: "SPEC_HEADING"}, FileName: "FILE"}
 	e := parser.ParseError{Message: "Message", LineNo: 5, FileName: "filename"}
-	se := newSpecExecutor(spec, nil, nil, nil, 0)
+	se := newSpecExecutor(spec, nil, nil, nil, nil, 0)
 
 	errs := se.convertErrors([]error{e})
 
@@ -196,7 +196,7 @@ func (s *MySuite) TestConvertParseErrorToGaugeMessagesError(c *C) {
 func (s *MySuite) TestConvertSpecValidationErrorToGaugeMessagesError(c *C) {
 	spec := &gauge.Specification{Heading: &gauge.Heading{LineNo: 0, Value: "SPEC_HEADING"}, FileName: "FILE"}
 	e := validation.NewSpecValidationError("Message", "filename")
-	se := newSpecExecutor(spec, nil, nil, nil, 0)
+	se := newSpecExecutor(spec, nil, nil, nil, nil, 0)
 
 	errs := se.convertErrors([]error{e})
 
@@ -212,7 +212,7 @@ func (s *MySuite) TestConvertSpecValidationErrorToGaugeMessagesError(c *C) {
 func (s *MySuite) TestConvertStepValidationErrorToGaugeMessagesError(c *C) {
 	spec := &gauge.Specification{Heading: &gauge.Heading{LineNo: 0, Value: "SPEC_HEADING"}, FileName: "FILE"}
 	e := validation.NewStepValidationError(&gauge.Step{LineText: "step", LineNo: 3}, "Step Message", "filename", nil, "")
-	se := newSpecExecutor(spec, nil, nil, nil, 0)
+	se := newSpecExecutor(spec, nil, nil, nil, nil, 0)
 
 	errs := se.convertErrors([]error{e})
 
@@ -292,7 +292,7 @@ var exampleSpecWithScenarios = &gauge.Specification{
 func TestExecuteFailsWhenSpecHasParseErrors(t *testing.T) {
 	errs := gauge.NewBuildErrors()
 	errs.SpecErrs[exampleSpec] = append(errs.SpecErrs[exampleSpec], parser.ParseError{Message: "some error"})
-	se := newSpecExecutor(exampleSpec, nil, nil, errs, 0)
+	se := newSpecExecutor(exampleSpec, nil, nil, nil, errs, 0)
 
 	res := se.execute(false, true, false)
 
@@ -309,7 +309,7 @@ func TestExecuteFailsWhenSpecHasParseErrors(t *testing.T) {
 func TestExecuteSkipsWhenSpecHasErrors(t *testing.T) {
 	errs := gauge.NewBuildErrors()
 	errs.SpecErrs[exampleSpec] = append(errs.SpecErrs[exampleSpec], fmt.Errorf("some error"))
-	se := newSpecExecutor(exampleSpec, nil, nil, errs, 0)
+	se := newSpecExecutor(exampleSpec, nil, nil, nil, errs, 0)
 
 	res := se.execute(false, true, false)
 
@@ -329,7 +329,8 @@ func TestExecuteInitSpecDatastore(t *testing.T) {
 		}
 		return &gauge_messages.ProtoExecutionResult{}
 	}
-	se := newSpecExecutor(exampleSpecWithScenarios, r, h, errs, 0)
+	d := &gauge.DataTable{}
+	se := newSpecExecutor(exampleSpecWithScenarios, d, r, h, errs, 0)
 	se.execute(true, false, false)
 
 	if !dataStoreInitCalled {
@@ -348,7 +349,8 @@ func TestExecuteShouldNotInitSpecDatastoreWhenBeforeIsFalse(t *testing.T) {
 		}
 		return &gauge_messages.ProtoExecutionResult{}
 	}
-	se := newSpecExecutor(exampleSpec, nil, nil, errs, 0)
+	d := &gauge.DataTable{}
+	se := newSpecExecutor(exampleSpec, d, nil, nil, errs, 0)
 	se.execute(false, false, false)
 
 	if dataStoreInitCalled {
@@ -363,7 +365,8 @@ func TestExecuteSkipsWhenSpecDatastoreInitFails(t *testing.T) {
 	r.ExecuteAndGetStatusFunc = func(m *gauge_messages.Message) *gauge_messages.ProtoExecutionResult {
 		return &gauge_messages.ProtoExecutionResult{Failed: true, ErrorMessage: "datastore init error"}
 	}
-	se := newSpecExecutor(exampleSpecWithScenarios, r, nil, errs, 0)
+	d := &gauge.DataTable{}
+	se := newSpecExecutor(exampleSpecWithScenarios, d, r, nil, errs, 0)
 	res := se.execute(true, false, false)
 
 	if !res.Skipped {
@@ -371,7 +374,7 @@ func TestExecuteSkipsWhenSpecDatastoreInitFails(t *testing.T) {
 	}
 
 	e := res.Errors[0]
-	expected := "example.spec:0 Failed to initialize spec datastore. Error: datastore init error => 'Example Spec'"
+	expected := "example.spec:0 failed to initialize spec datastore. Error: datastore init error => 'Example Spec'"
 	if e.Message != expected {
 		t.Errorf("Expected error = '%s', got '%s'", expected, e.Message)
 	}
@@ -389,7 +392,8 @@ func TestExecuteBeforeSpecHook(t *testing.T) {
 		}
 		return &gauge_messages.ProtoExecutionResult{}
 	}
-	se := newSpecExecutor(exampleSpecWithScenarios, r, h, errs, 0)
+	d := &gauge.DataTable{}
+	se := newSpecExecutor(exampleSpecWithScenarios, d, r, h, errs, 0)
 	se.execute(true, false, false)
 
 	if !beforeSpecHookCalled {
@@ -422,7 +426,8 @@ func TestExecuteShouldNotifyBeforeSpecEvent(t *testing.T) {
 			}
 		}
 	}()
-	se := newSpecExecutor(exampleSpecWithScenarios, r, h, errs, 0)
+	d := &gauge.DataTable{}
+	se := newSpecExecutor(exampleSpecWithScenarios, d, r, h, errs, 0)
 	se.execute(true, false, false)
 
 	wg.Wait()
@@ -443,7 +448,8 @@ func TestExecuteAfterSpecHook(t *testing.T) {
 		}
 		return &gauge_messages.ProtoExecutionResult{}
 	}
-	se := newSpecExecutor(exampleSpecWithScenarios, r, h, errs, 0)
+	d := &gauge.DataTable{}
+	se := newSpecExecutor(exampleSpecWithScenarios, d, r, h, errs, 0)
 	se.execute(false, false, true)
 
 	if !afterSpecHookCalled {
@@ -472,7 +478,8 @@ func TestExecuteAddsSpecHookExecutionMessages(t *testing.T) {
 		}
 		return &gauge_messages.ProtoExecutionResult{}
 	}
-	se := newSpecExecutor(exampleSpec, mockRunner, mockHandler, errs, 0)
+	d := &gauge.DataTable{}
+	se := newSpecExecutor(exampleSpec, d, mockRunner, mockHandler, errs, 0)
 	se.execute(true, false, true)
 
 	gotPreHookMessages := se.specResult.ProtoSpec.PreHookMessages
@@ -513,7 +520,8 @@ func TestExecuteAddsSpecHookExecutionScreenshots(t *testing.T) {
 		}
 		return &gauge_messages.ProtoExecutionResult{}
 	}
-	se := newSpecExecutor(exampleSpec, mockRunner, mockHandler, errs, 0)
+	d := &gauge.DataTable{}
+	se := newSpecExecutor(exampleSpec, d, mockRunner, mockHandler, errs, 0)
 	se.execute(true, false, true)
 
 	beforeSpecScreenshots := se.specResult.ProtoSpec.PreHookScreenshotFiles
@@ -564,7 +572,8 @@ func TestExecuteShouldNotifyAfterSpecEvent(t *testing.T) {
 			}
 		}
 	}()
-	se := newSpecExecutor(exampleSpecWithScenarios, r, h, errs, 0)
+	d := &gauge.DataTable{}
+	se := newSpecExecutor(exampleSpecWithScenarios, d, r, h, errs, 0)
 	se.execute(false, false, true)
 
 	wg.Wait()
@@ -585,7 +594,8 @@ func (e *mockExecutor) execute(i gauge.Item, r result.Result) {
 func TestExecuteScenario(t *testing.T) {
 	MaxRetriesCount = 1
 	errs := gauge.NewBuildErrors()
-	se := newSpecExecutor(exampleSpecWithScenarios, nil, nil, errs, 0)
+	d := &gauge.DataTable{}
+	se := newSpecExecutor(exampleSpecWithScenarios, d, nil, nil, errs, 0)
 	executedScenarios := make([]string, 0)
 	se.scenarioExecutor = &mockExecutor{
 		executeFunc: func(i gauge.Item, r result.Result) {
@@ -609,7 +619,8 @@ func TestExecuteScenario(t *testing.T) {
 func TestExecuteScenarioWithRetries(t *testing.T) {
 	MaxRetriesCount = 3
 	errs := gauge.NewBuildErrors()
-	se := newSpecExecutor(exampleSpecWithScenarios, nil, nil, errs, 0)
+	d := &gauge.DataTable{}
+	se := newSpecExecutor(exampleSpecWithScenarios, d, nil, nil, errs, 0)
 
 	count := 1
 	se.scenarioExecutor = &mockExecutor{
@@ -680,7 +691,8 @@ func TestExecuteScenarioShouldRetryIfScenarioMatchTags(t *testing.T) {
 
 func newSpecExecutorForTestsWithRetry() *specExecutor {
 	errs := gauge.NewBuildErrors()
-	se := newSpecExecutor(exampleSpecWithTags, nil, nil, errs, 0)
+	d := &gauge.DataTable{}
+	se := newSpecExecutor(exampleSpecWithTags, d, nil, nil, errs, 0)
 
 	count := 1
 	se.scenarioExecutor = &mockExecutor{
@@ -700,7 +712,8 @@ func newSpecExecutorForTestsWithRetry() *specExecutor {
 
 func TestExecuteShouldMarkSpecAsSkippedWhenAllScenariosSkipped(t *testing.T) {
 	errs := gauge.NewBuildErrors()
-	se := newSpecExecutor(exampleSpecWithScenarios, nil, nil, errs, 0)
+	d := &gauge.DataTable{}
+	se := newSpecExecutor(exampleSpecWithScenarios, d, nil, nil, errs, 0)
 	se.scenarioExecutor = &mockExecutor{
 		executeFunc: func(i gauge.Item, r result.Result) {
 			r.(*result.ScenarioResult).ProtoScenario.Skipped = true

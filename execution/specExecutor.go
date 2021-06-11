@@ -31,12 +31,13 @@ type specExecutor struct {
 	pluginHandler        plugin.Handler
 	currentExecutionInfo *gauge_messages.ExecutionInfo
 	specResult           *result.SpecResult
+	mergedSpecsDataTable *gauge.DataTable
 	errMap               *gauge.BuildErrors
 	stream               int
 	scenarioExecutor     executor
 }
 
-func newSpecExecutor(s *gauge.Specification, r runner.Runner, ph plugin.Handler, e *gauge.BuildErrors, stream int) *specExecutor {
+func newSpecExecutor(s *gauge.Specification, d *gauge.DataTable, r runner.Runner, ph plugin.Handler, e *gauge.BuildErrors, stream int) *specExecutor {
 	ei := &gauge_messages.ExecutionInfo{
 		CurrentSpec: &gauge_messages.SpecInfo{
 			Name:     s.Heading.Value,
@@ -56,6 +57,7 @@ func newSpecExecutor(s *gauge.Specification, r runner.Runner, ph plugin.Handler,
 		errMap:               e,
 		stream:               stream,
 		currentExecutionInfo: ei,
+		mergedSpecsDataTable: d,
 		scenarioExecutor:     newScenarioExecutor(r, ph, ei, e, s.Contexts, s.TearDownSteps, stream),
 	}
 }
@@ -81,7 +83,7 @@ func (e *specExecutor) execute(executeBefore, execute, executeAfter bool) *resul
 		event.Notify(event.NewExecutionEvent(event.SpecStart, e.specification, e.specResult, e.stream, *e.currentExecutionInfo))
 		if _, ok := e.errMap.SpecErrs[e.specification]; !ok {
 			if res := e.initSpecDataStore(); res.GetFailed() {
-				e.skipSpecForError(fmt.Errorf("Failed to initialize spec datastore. Error: %s", res.GetErrorMessage()))
+				e.skipSpecForError(fmt.Errorf("failed to initialize spec datastore. Error: %s", res.GetErrorMessage()))
 			} else {
 				e.notifyBeforeSpecHook()
 			}
@@ -133,7 +135,7 @@ func (e *specExecutor) execute(executeBefore, execute, executeAfter bool) *resul
 
 func (e *specExecutor) executeTableRelatedScenarios(scenarios []*gauge.Scenario) error {
 	if len(scenarios) > 0 {
-		index := e.specification.Scenarios[0].SpecDataTableRowIndex
+		index := scenarios[0].SpecDataTableRowIndex
 		sceRes, err := e.executeScenarios(scenarios)
 		if err != nil {
 			return err
@@ -179,8 +181,28 @@ func (e *specExecutor) notifyBeforeSpecHook() {
 		setSpecFailure(e.currentExecutionInfo)
 		handleHookFailure(e.specResult, res, result.AddPreHook)
 	}
+	sendMergedTable := e.specification.DataTable.IsInitialized() &&
+		e.mergedSpecsDataTable.IsInitialized() &&
+		len(e.mergedSpecsDataTable.Table.Columns[0]) > 1
+	var specDataTableRow *gauge_messages.ProtoItem
+	var idx int
+	if sendMergedTable {
+		if e.specResult.ProtoSpec.IsTableDriven {
+			for i, item := range e.specResult.ProtoSpec.Items {
+				if item.ItemType == gauge_messages.ProtoItem_Table {
+					specDataTableRow = item
+					idx = i
+					break
+				}
+			}
+		}
+		e.specResult.ProtoSpec.Items[idx] = gauge.ConvertToProtoItem(e.mergedSpecsDataTable)
+	}
 	m.SpecExecutionStartingRequest.SpecResult = gauge.ConvertToProtoSpecResult(e.specResult)
 	e.pluginHandler.NotifyPlugins(m)
+	if sendMergedTable {
+		e.specResult.ProtoSpec.Items[idx] = specDataTableRow
+	}
 }
 
 func (e *specExecutor) notifyAfterSpecHook() {

@@ -110,9 +110,31 @@ func (e *simpleExecution) stopAllPlugins() {
 	}
 }
 
+func (e *simpleExecution) mergeSpecDataTables(specs []*gauge.Specification) *gauge.DataTable {
+	if len(specs) == 0 {
+		return &gauge.DataTable{}
+	}
+	tableRow := specs[0].DataTable
+	var cols [][]gauge.TableCell
+	cols = append(cols, tableRow.Table.Columns...)
+	table := &gauge.DataTable{
+		Table:      *gauge.NewTable(tableRow.Table.Headers, cols, tableRow.Table.LineNo),
+		Value:      tableRow.Value,
+		LineNo:     tableRow.LineNo,
+		IsExternal: tableRow.IsExternal,
+	}
+	for i := 1; i < len(specs); i++ {
+		for j, cells := range specs[i].DataTable.Table.Columns {
+			table.Table.Columns[j] = append(table.Table.Columns[j], cells...)
+		}
+	}
+	return table
+}
+
 func (e *simpleExecution) executeSpecs(sc *gauge.SpecCollection) (results []*result.SpecResult) {
 	for sc.HasNext() {
 		specs := sc.Next()
+		mergedSpecsDataTable := e.mergeSpecDataTables(specs)
 		var preHookFailures, postHookFailures []*gauge_messages.ProtoHookFailure
 		var specResults []*result.SpecResult
 		var before, after = true, false
@@ -120,7 +142,7 @@ func (e *simpleExecution) executeSpecs(sc *gauge.SpecCollection) (results []*res
 			if i == len(specs)-1 {
 				after = true
 			}
-			res := newSpecExecutor(spec, e.runner, e.pluginHandler, e.errMaps, e.stream).execute(before, preHookFailures == nil, after)
+			res := newSpecExecutor(spec, mergedSpecsDataTable, e.runner, e.pluginHandler, e.errMaps, e.stream).execute(before, preHookFailures == nil, after)
 			before = false
 			specResults = append(specResults, res)
 			preHookFailures = append(preHookFailures, res.GetPreHook()...)

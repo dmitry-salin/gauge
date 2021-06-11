@@ -33,7 +33,7 @@ func (s *MySuite) TestResolveConceptToProtoConceptItem(c *C) {
 		c.Error(err)
 	}
 
-	specExecutor := newSpecExecutor(spec, nil, nil, nil, 0)
+	specExecutor := newSpecExecutor(spec, nil, nil, nil, nil, 0)
 	specExecutor.errMap = getValidationErrorMap()
 	lookup, err := specExecutor.dataTableLookup()
 	c.Assert(err, IsNil)
@@ -78,7 +78,7 @@ func (s *MySuite) TestResolveNestedConceptToProtoConceptItem(c *C) {
 	specParser := new(parser.SpecParser)
 	spec, _, _ := specParser.Parse(specText, conceptDictionary, "")
 
-	specExecutor := newSpecExecutor(spec, nil, nil, nil, 0)
+	specExecutor := newSpecExecutor(spec, nil, nil, nil, nil, 0)
 	specExecutor.errMap = getValidationErrorMap()
 	lookup, err := specExecutor.dataTableLookup()
 	c.Assert(err, IsNil)
@@ -128,7 +128,7 @@ func TestResolveNestedConceptAndTableParamToProtoConceptItem(t *testing.T) {
 	specParser := new(parser.SpecParser)
 	spec, _, _ := specParser.Parse(specText, conceptDictionary, "")
 
-	specExecutor := newSpecExecutor(spec, nil, nil, nil, 0)
+	specExecutor := newSpecExecutor(spec, nil, nil, nil, nil, 0)
 	specExecutor.errMap = getValidationErrorMap()
 	lookup, err := specExecutor.dataTableLookup()
 	if err != nil {
@@ -165,7 +165,7 @@ func (s *MySuite) TestResolveToProtoConceptItemWithDataTable(c *C) {
 	specParser := new(parser.SpecParser)
 	spec, _, _ := specParser.Parse(specText, conceptDictionary, "")
 
-	specExecutor := newSpecExecutor(spec, nil, nil, nil, 0)
+	specExecutor := newSpecExecutor(spec, nil, nil, nil, nil, 0)
 
 	specExecutor.errMap = gauge.NewBuildErrors()
 	lookup, err := specExecutor.dataTableLookup()
