@@ -10,11 +10,8 @@ import (
 	"fmt"
 	"os"
 	"strconv"
-
-	"github.com/getgauge/gauge/gauge"
-
 	"strings"
-
+	gauge "github.com/getgauge/gauge/gauge"
 	"github.com/getgauge/gauge/config"
 	"github.com/getgauge/gauge/env"
 	"github.com/getgauge/gauge/execution"
@@ -79,7 +76,7 @@ var (
 		Run: func(cmd *cobra.Command, args []string) {
 			logger.Debugf(true, "gauge %s %v", cmd.Name(), strings.Join(args, " "))
 			if err := config.SetProjectRoot(args); err != nil {
-				exit(err, cmd.UsageString())
+				exit(err, "")
 			}
 			if er := handleConflictingParams(cmd.Flags(), args); er != nil {
 				exit(er, "")
@@ -129,7 +126,7 @@ func init() {
 	f.IntVarP(&streams, streamsName, "n", streamsDefault, "Specify number of parallel execution streams")
 	f.IntVarP(&maxRetriesCount, maxRetriesCountName, "c", maxRetriesCountDefault, "Max count of iterations for failed scenario")
 	f.StringVarP(&retryOnlyTags, retryOnlyTagsName, "", retryOnlyTagsDefault, "Retries the specs and scenarios tagged with given tags")
-	f.StringVarP(&tagsToFilterForParallelRun, onlyName, "o", onlyDefault, "Specify number of parallel execution streams")
+	f.StringVarP(&tagsToFilterForParallelRun, onlyName, "o", onlyDefault, "Execute only the specs and scenarios tagged with given tags in parallel, rest will be run in serial. Applicable only if run in parallel.")
 	err := f.MarkHidden(onlyName)
 	if err != nil {
 		logger.Errorf(false, fmt.Sprintf("Unable to mark '%s' flag as hidden: %s", onlyName, err.Error()))

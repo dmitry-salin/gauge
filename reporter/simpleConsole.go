@@ -12,9 +12,9 @@ import (
 	"strings"
 	"sync"
 
+	"github.com/getgauge/gauge-proto/go/gauge_messages"
 	"github.com/getgauge/gauge/execution/result"
 	"github.com/getgauge/gauge/gauge"
-	"github.com/getgauge/gauge/gauge_messages"
 	"github.com/getgauge/gauge/logger"
 )
 
@@ -39,7 +39,7 @@ func (sc *simpleConsole) SpecStart(spec *gauge.Specification, res result.Result)
 	defer sc.mu.Unlock()
 	formattedHeading := formatSpec(spec.Heading.Value)
 	logger.Info(false, formattedHeading)
-	fmt.Fprint(sc.writer, fmt.Sprintf("%s%s", formattedHeading, newline))
+	fmt.Fprintf(sc.writer, "%s%s", formattedHeading, newline)
 }
 
 func (sc *simpleConsole) SpecEnd(spec *gauge.Specification, res result.Result) {
@@ -53,7 +53,7 @@ func (sc *simpleConsole) SpecEnd(spec *gauge.Specification, res result.Result) {
 	fmt.Fprintln(sc.writer)
 }
 
-func (sc *simpleConsole) ScenarioStart(scenario *gauge.Scenario, i gauge_messages.ExecutionInfo, res result.Result) {
+func (sc *simpleConsole) ScenarioStart(scenario *gauge.Scenario, i *gauge_messages.ExecutionInfo, res result.Result) {
 	if res.(*result.ScenarioResult).ProtoScenario.ExecutionStatus == gauge_messages.ExecutionStatus_SKIPPED {
 		return
 	}
@@ -62,10 +62,10 @@ func (sc *simpleConsole) ScenarioStart(scenario *gauge.Scenario, i gauge_message
 	sc.indentation += scenarioIndentation
 	formattedHeading := formatScenario(scenario.Heading.Value)
 	logger.Info(false, formattedHeading)
-	fmt.Fprint(sc.writer, fmt.Sprintf("%s%s", indent(formattedHeading, sc.indentation), newline))
+	fmt.Fprintf(sc.writer, "%s%s", indent(formattedHeading, sc.indentation), newline)
 }
 
-func (sc *simpleConsole) ScenarioEnd(scenario *gauge.Scenario, res result.Result, i gauge_messages.ExecutionInfo) {
+func (sc *simpleConsole) ScenarioEnd(scenario *gauge.Scenario, res result.Result, i *gauge_messages.ExecutionInfo) {
 	if res.(*result.ScenarioResult).ProtoScenario.ExecutionStatus == gauge_messages.ExecutionStatus_SKIPPED {
 		return
 	}
@@ -82,11 +82,11 @@ func (sc *simpleConsole) StepStart(stepText string) {
 	sc.indentation += stepIndentation
 	logger.Debug(false, stepText)
 	if Verbose {
-		fmt.Fprint(sc.writer, fmt.Sprintf("%s%s", indent(strings.TrimSpace(stepText), sc.indentation), newline))
+		fmt.Fprintf(sc.writer, "%s%s", indent(strings.TrimSpace(stepText), sc.indentation), newline)
 	}
 }
 
-func (sc *simpleConsole) StepEnd(step gauge.Step, res result.Result, execInfo gauge_messages.ExecutionInfo) {
+func (sc *simpleConsole) StepEnd(step gauge.Step, res result.Result, execInfo *gauge_messages.ExecutionInfo) {
 	sc.mu.Lock()
 	defer sc.mu.Unlock()
 	printHookFailureSC(sc, res, res.GetPreHook)
@@ -116,7 +116,7 @@ func (sc *simpleConsole) ConceptStart(conceptHeading string) {
 	sc.indentation += stepIndentation
 	logger.Debug(false, conceptHeading)
 	if Verbose {
-		fmt.Fprint(sc.writer, fmt.Sprintf("%s%s", indent(strings.TrimSpace(conceptHeading), sc.indentation), newline))
+		fmt.Fprintf(sc.writer, "%s%s", indent(strings.TrimSpace(conceptHeading), sc.indentation), newline)
 	}
 }
 
@@ -151,7 +151,7 @@ func (sc *simpleConsole) Errorf(err string, args ...interface{}) {
 	errorMessage := fmt.Sprintf(err, args...)
 	logger.Error(false, errorMessage)
 	errorString := indent(errorMessage, sc.indentation+errorIndentation)
-	fmt.Fprint(sc.writer, fmt.Sprintf("%s%s", errorString, newline))
+	fmt.Fprintf(sc.writer, "%s%s", errorString, newline)
 }
 
 func (sc *simpleConsole) Write(b []byte) (int, error) {

@@ -12,7 +12,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/getgauge/gauge/gauge_messages"
+	"github.com/getgauge/gauge-proto/go/gauge_messages"
 	"github.com/getgauge/gauge/runner"
 	"github.com/getgauge/gauge/util"
 	"github.com/sourcegraph/go-langserver/pkg/lsp"
@@ -33,7 +33,7 @@ Scenario Heading
 	openFilesCache = &files{cache: make(map[lsp.DocumentURI][]string)}
 	openFilesCache.add(uri, specText)
 
-	b, _ := json.Marshal("Say {} to {}")
+	b, _ := json.Marshal([]string{"Say {} to {}"})
 	params := json.RawMessage(b)
 	want := []lsp.Location{
 		{URI: uri, Range: lsp.Range{

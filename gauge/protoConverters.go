@@ -9,8 +9,8 @@ package gauge
 import (
 	"time"
 
+	"github.com/getgauge/gauge-proto/go/gauge_messages"
 	"github.com/getgauge/gauge/execution/result"
-	"github.com/getgauge/gauge/gauge_messages"
 )
 
 func ConvertToProtoItem(item Item) *gauge_messages.ProtoItem {
@@ -129,7 +129,7 @@ func convertToProtoCommentItem(comment *Comment) *gauge_messages.ProtoItem {
 }
 
 func convertToProtoDataTableItem(dataTable *DataTable) *gauge_messages.ProtoItem {
-	return &gauge_messages.ProtoItem{ItemType: gauge_messages.ProtoItem_Table, Table: ConvertToProtoTable(&dataTable.Table)}
+	return &gauge_messages.ProtoItem{ItemType: gauge_messages.ProtoItem_Table, Table: ConvertToProtoTable(dataTable.Table)}
 }
 
 func convertToProtoParameter(arg *StepArg) *gauge_messages.Parameter {
@@ -149,9 +149,12 @@ func convertToProtoParameter(arg *StepArg) *gauge_messages.Parameter {
 }
 
 func ConvertToProtoTable(table *Table) *gauge_messages.ProtoTable {
+	if table == nil {
+		return nil
+	}
 	protoTableParam := &gauge_messages.ProtoTable{Rows: make([]*gauge_messages.ProtoTableRow, 0)}
 	protoTableParam.Headers = &gauge_messages.ProtoTableRow{Cells: table.Headers}
-	for _, row := range table.Rows() {
+	for _, row := range table.Rows() { // nolint
 		protoTableParam.Rows = append(protoTableParam.Rows, &gauge_messages.ProtoTableRow{Cells: row})
 	}
 	return protoTableParam

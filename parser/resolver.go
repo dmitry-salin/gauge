@@ -11,8 +11,8 @@ import (
 	"regexp"
 	"strings"
 
+	"github.com/getgauge/gauge-proto/go/gauge_messages"
 	"github.com/getgauge/gauge/gauge"
-	"github.com/getgauge/gauge/gauge_messages"
 	"github.com/getgauge/gauge/util"
 )
 
@@ -255,7 +255,7 @@ func PopulateConceptDynamicParams(concept *gauge.Step, dataTableLookup *gauge.Ar
 }
 
 // GetResolvedDataTablerows resolves any dynamic parameters in a table cell
-func GetResolvedDataTablerows(table gauge.Table) {
+func GetResolvedDataTablerows(table *gauge.Table) {
 	for i, cells := range table.Columns {
 		for j, cell := range cells {
 			if cell.CellType == gauge.SpecialString {

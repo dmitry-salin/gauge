@@ -14,10 +14,10 @@ import (
 	"os"
 	"runtime/debug"
 
+	gm "github.com/getgauge/gauge-proto/go/gauge_messages"
 	"github.com/getgauge/gauge/api/infoGatherer"
 	"github.com/getgauge/gauge/execution"
 	"github.com/getgauge/gauge/gauge"
-	gm "github.com/getgauge/gauge/gauge_messages"
 	"github.com/sourcegraph/jsonrpc2"
 )
 
@@ -63,10 +63,6 @@ func (h *LangHandler) handle(ctx context.Context, conn *jsonrpc2.Conn, req *json
 func (h *LangHandler) Handle(ctx context.Context, conn jsonrpc2.JSONRPC2, req *jsonrpc2.Request) (interface{}, error) {
 	switch req.Method {
 	case "initialize":
-		if err := informRunnerCompatibility(ctx, conn); err != nil {
-			logError(req, err.Error())
-			return nil, err
-		}
 		if err := cacheInitializeParams(req); err != nil {
 			logError(req, err.Error())
 			return nil, err
@@ -278,8 +274,9 @@ func startLsp(logLevel string) (context.Context, *jsonrpc2.Conn) {
 func initializeRunner() error {
 	id, err := getLanguageIdentifier()
 	if err != nil || id == "" {
-		logDebug(nil, "Current runner is not compatible with gauge LSP.")
-		return err
+		e := fmt.Errorf("There are version incompatibilities between Gauge and it's plugins in this project. Some features will not work as expected.")
+		logDebug(nil, "%s", e.Error())
+		return e
 	}
 	err = startRunner()
 	if err != nil {
@@ -300,6 +297,9 @@ func Start(p infoProvider, logLevel string) {
 	}
 	initialize(ctx, conn)
 	<-conn.DisconnectNotify()
+	if killRunner() != nil {
+		logInfo(nil, "failed to kill runner with pid %d", lRunner.runner.Pid())
+	}
 	logInfo(nil, "Connection closed")
 }
 

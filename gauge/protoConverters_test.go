@@ -7,7 +7,7 @@
 package gauge
 
 import (
-	"github.com/getgauge/gauge/gauge_messages"
+	"github.com/getgauge/gauge-proto/go/gauge_messages"
 	. "gopkg.in/check.v1"
 )
 
@@ -75,7 +75,7 @@ func (s *MySuite) TestConvertToProtoSpecWithDataTable(c *C) {
 			Value: "Spec Heading",
 		},
 		FileName:  "example.spec",
-		DataTable: DataTable{Table: Table{headerIndexMap: make(map[string]int)}},
+		DataTable: DataTable{Table: &Table{headerIndexMap: make(map[string]int)}},
 	}
 	protoSpec := ConvertToProtoSpec(spec)
 

@@ -8,12 +8,14 @@ package execution
 
 import (
 	"fmt"
+	"path/filepath"
 	"time"
 
+	"github.com/getgauge/gauge-proto/go/gauge_messages"
+	"github.com/getgauge/gauge/config"
 	"github.com/getgauge/gauge/execution/event"
 	"github.com/getgauge/gauge/execution/result"
 	"github.com/getgauge/gauge/gauge"
-	"github.com/getgauge/gauge/gauge_messages"
 	"github.com/getgauge/gauge/logger"
 	"github.com/getgauge/gauge/manifest"
 	"github.com/getgauge/gauge/plugin"
@@ -46,14 +48,22 @@ func newSimpleExecution(executionInfo *executionInfo, combineDataTableSpecs, ski
 	if combineDataTableSpecs {
 		executionInfo.specs = gauge.NewSpecCollection(executionInfo.specs.Specs(), true)
 	}
+	ei := &gauge_messages.ExecutionInfo{
+		ProjectName:              filepath.Base(config.ProjectRoot),
+		NumberOfExecutionStreams: int32(NumberOfExecutionStreams),
+		RunnerId:                 int32(executionInfo.stream),
+		ExecutionArgs:            gauge.ConvertToProtoExecutionArg(ExecutionArgs),
+	}
+
 	return &simpleExecution{
-		manifest:        executionInfo.manifest,
-		specCollection:  executionInfo.specs,
-		runner:          executionInfo.runner,
-		pluginHandler:   executionInfo.pluginHandler,
-		errMaps:         executionInfo.errMaps,
-		stream:          executionInfo.stream,
-		skipSuiteEvents: skipSuiteEvents,
+		manifest:             executionInfo.manifest,
+		specCollection:       executionInfo.specs,
+		runner:               executionInfo.runner,
+		pluginHandler:        executionInfo.pluginHandler,
+		errMaps:              executionInfo.errMaps,
+		stream:               executionInfo.stream,
+		skipSuiteEvents:      skipSuiteEvents,
+		currentExecutionInfo: ei,
 	}
 }
 
@@ -92,13 +102,13 @@ func (e *simpleExecution) execute() {
 
 func (e *simpleExecution) start() {
 	e.startTime = time.Now()
-	event.Notify(event.NewExecutionEvent(event.SuiteStart, nil, nil, 0, gauge_messages.ExecutionInfo{}))
+	event.Notify(event.NewExecutionEvent(event.SuiteStart, nil, nil, 0, &gauge_messages.ExecutionInfo{}))
 	e.pluginHandler = plugin.StartPlugins(e.manifest)
 }
 
 func (e *simpleExecution) finish() {
 	e.suiteResult = mergeDataTableSpecResults(e.suiteResult)
-	event.Notify(event.NewExecutionEvent(event.SuiteEnd, nil, e.suiteResult, 0, gauge_messages.ExecutionInfo{}))
+	event.Notify(event.NewExecutionEvent(event.SuiteEnd, nil, e.suiteResult, 0, &gauge_messages.ExecutionInfo{}))
 	e.notifyExecutionResult()
 	e.stopAllPlugins()
 }
@@ -115,10 +125,13 @@ func (e *simpleExecution) mergeSpecDataTables(specs []*gauge.Specification) *gau
 		return &gauge.DataTable{}
 	}
 	tableRow := specs[0].DataTable
+	if !tableRow.IsInitialized() {
+		return &gauge.DataTable{}
+	}
 	var cols [][]gauge.TableCell
 	cols = append(cols, tableRow.Table.Columns...)
 	table := &gauge.DataTable{
-		Table:      *gauge.NewTable(tableRow.Table.Headers, cols, tableRow.Table.LineNo),
+		Table:      gauge.NewTable(tableRow.Table.Headers, cols, tableRow.Table.LineNo),
 		Value:      tableRow.Value,
 		LineNo:     tableRow.LineNo,
 		IsExternal: tableRow.IsExternal,

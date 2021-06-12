@@ -28,6 +28,7 @@ const (
 	GOOS              = "GOOS"
 	X86               = "386"
 	X86_64            = "amd64"
+	ARM64             = "arm64"
 	darwin            = "darwin"
 	linux             = "linux"
 	freebsd           = "freebsd"
@@ -75,7 +76,6 @@ func compileGauge() {
 	ldflags := fmt.Sprintf("-X github.com/getgauge/gauge/version.BuildMetadata=%s -X github.com/getgauge/gauge/version.CommitHash=%s", buildMetadata, commitHash)
 	args := []string{
 		"build",
-		"-mod=vendor",
 		fmt.Sprintf("-gcflags=-trimpath=%s", os.Getenv("GOPATH")),
 		fmt.Sprintf("-asmflags=-trimpath=%s", os.Getenv("GOPATH")),
 		"-ldflags", ldflags, "-o", executablePath,
@@ -85,15 +85,15 @@ func compileGauge() {
 
 func runTests(coverage bool) {
 	if coverage {
-		runProcess("go", "test", "-mod=vendor", "-covermode=count", "-coverprofile=count.out")
+		runProcess("go", "test", "-covermode=count", "-coverprofile=count.out")
 		if coverage {
-			runProcess("go", "tool", "cover", "-html=count.out", "-mod=vendor")
+			runProcess("go", "tool", "cover", "-html=count.out")
 		}
 	} else {
 		if *verbose {
-			runProcess("go", "test", "-mod=vendor", "./...", "-v")
+			runProcess("go", "test", "./...", "-v")
 		} else {
-			runProcess("go", "test", "-mod=vendor", "./...")
+			runProcess("go", "test", "./...")
 		}
 	}
 }
@@ -152,7 +152,7 @@ var certFile = flag.String("certFile", "", "Should be passed for signing the win
 // Each target name is the directory name
 var (
 	platformEnvs = []map[string]string{
-		map[string]string{GOARCH: X86, GOOS: darwin, CGO_ENABLED: "0"},
+		map[string]string{GOARCH: ARM64, GOOS: darwin, CGO_ENABLED: "0"},
 		map[string]string{GOARCH: X86_64, GOOS: darwin, CGO_ENABLED: "0"},
 		map[string]string{GOARCH: X86, GOOS: linux, CGO_ENABLED: "0"},
 		map[string]string{GOARCH: X86_64, GOOS: linux, CGO_ENABLED: "0"},
@@ -295,14 +295,14 @@ func signExecutable(exeFilePath string, certFilePath string) {
 }
 
 func createDarwinPackage() {
-	distroDir := filepath.Join(deploy, gauge)
+	distroDir := filepath.Join(deploy, packageName())
 	copyGaugeBinaries(distroDir)
 	if id := os.Getenv("OS_SIGNING_IDENTITY"); id == "" {
-		log.Printf("No singning identity found . Executable won't be signed.")
+		log.Printf("No signing identity found . Executable won't be signed.")
 	} else {
 		runProcess("codesign", "-s", id, "--force", "--deep", filepath.Join(distroDir, gauge))
 	}
-	createZipFromUtil(deploy, gauge, packageName())
+	createZipFromUtil(deploy, packageName(), packageName())
 	if err := os.RemoveAll(distroDir); err != nil {
 		log.Printf("failed to remove %s", distroDir)
 	}
@@ -440,6 +440,10 @@ func getPackageArchSuffix() string {
 
 	if strings.HasSuffix(*binDir, "amd64") {
 		return "x86_64"
+	}
+
+	if arch := getGOARCH(); arch == "arm64" {
+		return "arm64"
 	}
 
 	if arch := getGOARCH(); arch == X86 {

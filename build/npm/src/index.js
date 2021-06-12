@@ -5,27 +5,35 @@
 const install = require("./install"),
     path = require("path"),
     unzip = require('unzipper'),
-    fs = require('fs'),
-    request = require('superagent'),
+    https = require('https'),
     packageJsonPath = path.join(__dirname, "..", "package.json"),
     binPath = "./bin";
 
+var downloadFollowingRedirect = function(url, resolve, reject) {
+    https.get(url, { headers: { 'accept-encoding': 'gzip,deflate' } }, res => {
+        if (res.statusCode >= 300 && res.statusCode < 400) {
+            downloadFollowingRedirect(res.headers.location, reject, resolve);
+        } else if (res.statusCode > 400) {
+            console.error(`Unable to download '${url}' : ${res.statusCode}-'${res.statusMessage}'`);
+        } else {
+            res.pipe(unzip.Extract({ path: path.normalize(binPath) })).on('error', reject).on('end', resolve);
+        }
+    });
+};
 
 var downloadAndExtract = function(version) {
     console.log(`Fetching download url for Gauge version ${version}`);
     let url = install.getBinaryUrl(version);
-    let gaugeExecutable = process.platform === "win32" ? "gauge.exe" : "gauge"
     console.log(`Downloading ${url} to ${binPath}`);
-    return unzip.Open.url(request, url).then((d) => {
-        return new Promise((resolve, reject) => {
-            d.files[0].stream()
-            .pipe(fs.createWriteStream(path.join(binPath, gaugeExecutable)))
-            .on('error',reject)
-            .on('finish',resolve)
-        });
-    });
-}
+    return new Promise((resolve, reject) => {
+        try {
+            downloadFollowingRedirect(url, resolve, reject);
+        } catch (error) {
+            reject(error);
+        }
+    })
+};
 
 install.getVersion(packageJsonPath)
-.then((v) => downloadAndExtract(v.split('-')[0]))
-.catch((e) => console.error(e));
+    .then((v) => downloadAndExtract(v.split('-')[0]))
+    .catch((e) => console.error(e));

@@ -13,7 +13,7 @@ import (
 	"strings"
 
 	"github.com/getgauge/common"
-	gm "github.com/getgauge/gauge/gauge_messages"
+	gm "github.com/getgauge/gauge-proto/go/gauge_messages"
 	"github.com/getgauge/gauge/util"
 	"github.com/sourcegraph/go-langserver/pkg/lsp"
 	"github.com/sourcegraph/jsonrpc2"
@@ -41,11 +41,14 @@ func getImplFiles(req *jsonrpc2.Request) (interface{}, error) {
 	var info = struct {
 		Concept bool `json:"concept"`
 	}{}
-	if err := json.Unmarshal(*req.Params, &info); err != nil {
-		return nil, fmt.Errorf("failed to parse request %s", err.Error())
-	}
-	if info.Concept {
-		return append(fileList, util.GetConceptFiles()...), nil
+
+	if req.Params != nil {
+		if err := json.Unmarshal(*req.Params, &info); err != nil {
+			return nil, fmt.Errorf("failed to parse request %s", err.Error())
+		}
+		if info.Concept {
+			return append(fileList, util.GetConceptFiles()...), nil
+		}
 	}
 	response, err := getImplementationFileList()
 	if err != nil {

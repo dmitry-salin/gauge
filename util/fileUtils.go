@@ -183,7 +183,32 @@ var GetConceptFiles = func() []string {
 	if err != nil {
 		logger.Fatalf(true, "Error getting absolute path. %v", err)
 	}
-	return FindConceptFilesIn(absPath)
+	files := FindConceptFilesIn(absPath)
+	var specFromProperties = os.Getenv(env.SpecsDir)
+	if specFromProperties == "" {
+		return files
+	}
+	var specDirectories = strings.Split(specFromProperties, ",")
+	for _, dir := range specDirectories {
+		absSpecPath, err := filepath.Abs(strings.TrimSpace(dir))
+		if err != nil {
+			logger.Fatalf(true, "Error getting absolute path. %v", err)
+		}
+		files = append(files, FindConceptFilesIn(absSpecPath)...)
+	}
+	return removeDuplicateValues(files)
+}
+
+func removeDuplicateValues(slice []string) []string {
+	keys := make(map[string]bool)
+	list := []string{}
+	for _, entry := range slice {
+		if _, value := keys[entry]; !value {
+			keys[entry] = true
+			list = append(list, entry)
+		}
+	}
+	return list
 }
 
 // SaveFile saves contents at the given path

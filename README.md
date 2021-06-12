@@ -11,39 +11,41 @@
 Gauge is a light weight cross-platform test automation tool. It provides the ability to author test cases in the business language.
 
 ## Get Started
-Read more about [Why Gauge](https://blog.getgauge.io/why-we-built-gauge-6e31bb4848cd) can be used, its [terminologies](https://docs.gauge.org/latest/writing-specifications.html) and [**get started...**](https://docs.gauge.org/getting_started/installing-gauge.html)
+Read more about [Why Gauge](https://gauge.org/2018/05/15/why-we-built-gauge/) can be used, its [terminologies](https://docs.gauge.org/writing-specifications.html) and [**get started...**](https://docs.gauge.org/getting_started/installing-gauge.html)
 
 ## Find out more
 
-| **[User Docs][userdocs]**     | **[Setup Guide][get-started]**     | **[Examples][examples]**           | **[Contributing][contributing]**           |
-|:-------------------------------------:|:-------------------------------:|:-----------------------------------:|:---------------------------------------------:|
-| [![i1][userdocs-image]][userdocs]<br>Learn more about using Gauge | [![i2][getstarted-image]][get-started]<br> Getting started with Gauge | [![i3][examples-image]][examples]<br>Some Gauge Examples | [![i4][contributing-image]][contributing]<br>How can you contribute to Gauge? |
+| **[User Docs][userdocs]**     | **[Setup Guide][get-started]**     | **[Examples][examples]**           | **[Contributing][contributing]**           | **[Brand Style Guide][branding]**           |
+|:-------------------------------------:|:-------------------------------:|:-----------------------------------:|:---------------------------------------------:|:---------------------------------------------:|
+| [![i1][userdocs-image]][userdocs]<br>Learn more about using Gauge | [![i2][getstarted-image]][get-started]<br> Getting started with Gauge | [![i3][examples-image]][examples]<br>Some Gauge Examples | [![i4][contributing-image]][contributing]<br>How can you contribute to Gauge? | [![i5][branding-image]][branding]<br>Gauge brand colours, logos, images etc. |
 
 [userdocs-image]:https://d3i6fms1cm1j0i.cloudfront.net/github/images/techdocs.png
 [getstarted-image]:https://d3i6fms1cm1j0i.cloudfront.net/github/images/setup.png
 [examples-image]:https://d3i6fms1cm1j0i.cloudfront.net/github/images/roadmap.png
 [contributing-image]:https://d3i6fms1cm1j0i.cloudfront.net/github/images/contributing.png
+[branding-image]:https://d3i6fms1cm1j0i.cloudfront.net/github/images/setup.png
 
-[userdocs]:https://docs.gauge.org/latest
+[userdocs]:https://docs.gauge.org/
 [get-started]:https://github.com/getgauge/gauge/wiki/Setup
 [examples]:https://getgauge-examples.github.io/
 [contributing]:CONTRIBUTING.md
+[branding]:https://brand.gauge.org/
 
 ## Questions or need help?
 
 ### Troubleshooting
-Context specific **Troubleshooting** guide is available in relevant pages of the [Gauge Documentation](https://docs.gauge.org/latest).
+Context specific **Troubleshooting** guide is available in relevant pages of the [Gauge Documentation](https://docs.gauge.org/).
 
 ### Talk to us
 
 Please see below for the best place to ask a query:
 
-- How do I? -- [Spectrum #General](https://spectrum.chat/gauge/general?tab=posts)
-- I got this error, why? -- [Spectrum #General Chat](https://spectrum.chat/gauge/general?tab=posts)
+- How do I? -- [Discussions](https://github.com/getgauge/gauge/discussions)
+- I got this error, why? -- [Discussions](https://github.com/getgauge/gauge/discussions)
 - I got this error and I'm sure it's a bug -- file an [issue](https://github.com/getgauge/gauge/issues)
 - I have an idea/request -- file an [issue](https://github.com/getgauge/gauge/issues)
-- Why do you? -- [Spectrum #Meta](https://spectrum.chat/gauge/meta?tab=posts)
-- When will you? -- [Spectrum #Meta](https://spectrum.chat/gauge/meta?tab=posts)
+- Why do you? -- [Discussions](https://github.com/getgauge/gauge/discussions)
+- When will you? -- [Discussions](https://github.com/getgauge/gauge/discussions)
 
 ### Other projects
 

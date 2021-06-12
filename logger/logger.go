@@ -256,7 +256,7 @@ func getFatalErrorMsg() string {
 Get Support ----------------------------
 	Docs:          https://docs.gauge.org
 	Bugs:          https://github.com/getgauge/gauge/issues
-	Chat:          https://spectrum.chat/gauge
+	Chat:          https://github.com/getgauge/gauge/discussions
 
 Your Environment Information -----------
 	%s
@@ -273,7 +273,7 @@ func addFatalError(module, msg string) {
 func getPluginVersions() string {
 	pis, err := pluginInfo.GetAllInstalledPluginsWithVersion()
 	if err != nil {
-		return fmt.Sprintf("Could not retrieve plugin information.")
+		return "Could not retrieve plugin information."
 	}
 	pluginVersions := make([]string, 0)
 	for _, pi := range pis {

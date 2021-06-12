@@ -10,8 +10,8 @@ import (
 	"net"
 	"testing"
 
+	"github.com/getgauge/gauge-proto/go/gauge_messages"
 	"github.com/getgauge/gauge/gauge"
-	"github.com/getgauge/gauge/gauge_messages"
 	"github.com/getgauge/gauge/parser"
 	"github.com/getgauge/gauge/runner"
 
@@ -41,7 +41,7 @@ Scenario 2
 `
 	p := new(parser.SpecParser)
 	spec, _, _ := p.Parse(specText, gauge.NewConceptDictionary(), "")
-	err := gauge_messages.StepValidateResponse_STEP_IMPLEMENTATION_NOT_FOUND
+	err := gauge_messages.StepValidateResponse_STEP_IMPLEMENTATION_NOT_FOUND // nolint
 	errs := validationErrors{spec: []error{
 		NewStepValidationError(spec.Scenarios[0].Steps[0], "", "", &err, ""),
 		NewStepValidationError(spec.Scenarios[1].Steps[0], "", "", &err, ""),
@@ -67,7 +67,7 @@ Scenario 2
 `
 	p := new(parser.SpecParser)
 	spec, _, _ := p.Parse(specText, gauge.NewConceptDictionary(), "")
-	err := gauge_messages.StepValidateResponse_STEP_IMPLEMENTATION_NOT_FOUND
+	err := gauge_messages.StepValidateResponse_STEP_IMPLEMENTATION_NOT_FOUND // nolint
 
 	errs := validationErrors{spec: []error{
 		NewStepValidationError(spec.Scenarios[0].Steps[0], "", "", &err, ""),

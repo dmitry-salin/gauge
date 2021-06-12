@@ -11,8 +11,8 @@ import (
 
 	"github.com/getgauge/gauge/env"
 
+	"github.com/getgauge/gauge-proto/go/gauge_messages"
 	"github.com/getgauge/gauge/gauge"
-	"github.com/getgauge/gauge/gauge_messages"
 	"github.com/getgauge/gauge/parser"
 	. "gopkg.in/check.v1"
 )
@@ -42,7 +42,7 @@ func (s *MySuite) TestFormatSpecification(c *C) {
 		`# Spec Heading
 ## Scenario Heading
 * Example step
-* Step with inline table`+" "+`
+* Step with inline table
 
    |id |name|
    |---|----|
@@ -65,6 +65,26 @@ func (s *MySuite) TestFormatTable(c *C) {
    |name1|name2|
    |-----|-----|
    |john |doe  |
+`
+
+	c.Assert(got, Equals, want)
+}
+
+func (s *MySuite) TestFormatTableWithUmlautChars(c *C) {
+	// umlaut characters are unicode and can take up twice the space of regular chars
+	cell1 := gauge.TableCell{Value: "Büsingen", CellType: gauge.Static}
+	cell2 := gauge.TableCell{Value: "Hauptstraße", CellType: gauge.Static}
+
+	headers := []string{"col1", "col2"}
+	cols := [][]gauge.TableCell{{cell1}, {cell2}}
+
+	table := gauge.NewTable(headers, cols, 10)
+
+	got := FormatTable(table)
+	want := `
+   |col1    |col2       |
+   |--------|-----------|
+   |Büsingen|Hauptstraße|
 `
 
 	c.Assert(got, Equals, want)
@@ -204,12 +224,12 @@ func (s *MySuite) TestFormatStep(c *C) {
 
 func (s *MySuite) TestFormatStepsWithResolveArgs(c *C) {
 	step := &gauge.Step{Value: "my step with {}, {}", Args: []*gauge.StepArg{&gauge.StepArg{Value: "static \"foo\"", ArgType: gauge.Static},
-		&gauge.StepArg{Name: "dynamic", Value: "\"foo\"", ArgType: gauge.Static}},
+		&gauge.StepArg{Name: "dynamic", Value: "\"foo\"", ArgType: gauge.Dynamic}},
 		Fragments: []*gauge_messages.Fragment{
 			&gauge_messages.Fragment{Text: "my step with "},
 			&gauge_messages.Fragment{FragmentType: gauge_messages.Fragment_Parameter, Parameter: &gauge_messages.Parameter{Value: "static \"foo\"", ParameterType: gauge_messages.Parameter_Static}},
 			&gauge_messages.Fragment{Text: ", "},
-			&gauge_messages.Fragment{FragmentType: gauge_messages.Fragment_Parameter, Parameter: &gauge_messages.Parameter{Value: "\"foo\"", ParameterType: gauge_messages.Parameter_Static}}}}
+			&gauge_messages.Fragment{FragmentType: gauge_messages.Fragment_Parameter, Parameter: &gauge_messages.Parameter{Value: "\"foo\"", ParameterType: gauge_messages.Parameter_Dynamic}}}}
 	formatted := FormatStepWithResolvedArgs(step)
 	c.Assert(formatted, Equals, `* my step with "static "foo"", ""foo""
 `)
@@ -298,7 +318,7 @@ func (s *MySuite) TestFormatSpecificationWithTableContainingDynamicParameters(c 
    |1 |f  |
 ## Scenario Heading
 * Example step
-* Step with inline table 
+* Step with inline table
 
    |id|name |
    |--|-----|
@@ -334,7 +354,7 @@ func (s *MySuite) TestFormatShouldRetainNewlines(c *C) {
    |--|----|
    |1 |foo |
    |2 |bar |
-* Example step 
+* Example step
 
    |id|name |
    |--|-----|
@@ -391,7 +411,7 @@ func (s *MySuite) TestFormatShouldStripDuplicateNewlinesBeforeInlineTable(c *C) 
    |--|----|
    |1 |foo |
    |2 |bar |
-* Example step 
+* Example step
 
    |id|name |
    |--|-----|
@@ -433,7 +453,7 @@ func (s *MySuite) TestFormatShouldStripDuplicateNewlinesBeforeInlineTableInTeard
    |--|----|
    |1 |foo |
    |2 |bar |
-* Example step 
+* Example step
 
    |id|name |
    |--|-----|
@@ -442,7 +462,7 @@ func (s *MySuite) TestFormatShouldStripDuplicateNewlinesBeforeInlineTableInTeard
 
 ____
 
-* Example step 
+* Example step
 
    |id|name |
    |--|-----|

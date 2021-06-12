@@ -22,9 +22,9 @@ import (
 	"strconv"
 	"strings"
 
+	gm "github.com/getgauge/gauge-proto/go/gauge_messages"
 	"github.com/getgauge/gauge/api"
 	"github.com/getgauge/gauge/gauge"
-	gm "github.com/getgauge/gauge/gauge_messages"
 	"github.com/getgauge/gauge/logger"
 	"github.com/getgauge/gauge/parser"
 	"github.com/getgauge/gauge/runner"
@@ -219,7 +219,7 @@ func fillScenarioErrors(scenario *gauge.Scenario, errMap *gauge.BuildErrors, ste
 		if step.IsConcept {
 			fillScenarioErrors(scenario, errMap, step.ConceptSteps)
 		}
-		if err, ok := errMap.StepErrs[step]; ok {
+		if err, ok := errMap.StepErrs[step]; ok { // nolint
 			errMap.ScenarioErrs[scenario] = append(errMap.ScenarioErrs[scenario], err)
 		}
 	}
@@ -230,7 +230,7 @@ func fillSpecErrors(spec *gauge.Specification, errMap *gauge.BuildErrors, steps 
 		if context.IsConcept {
 			fillSpecErrors(spec, errMap, context.ConceptSteps)
 		}
-		if err, ok := errMap.StepErrs[context]; ok {
+		if err, ok := errMap.StepErrs[context]; ok { // nolint
 			errMap.SpecErrs[spec] = append(errMap.SpecErrs[spec], err)
 			for _, scenario := range spec.Scenarios {
 				if _, ok := errMap.ScenarioErrs[scenario]; !ok {

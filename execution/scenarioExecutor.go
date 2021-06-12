@@ -11,10 +11,10 @@ import (
 
 	"errors"
 
+	"github.com/getgauge/gauge-proto/go/gauge_messages"
 	"github.com/getgauge/gauge/execution/event"
 	"github.com/getgauge/gauge/execution/result"
 	"github.com/getgauge/gauge/gauge"
-	"github.com/getgauge/gauge/gauge_messages"
 	"github.com/getgauge/gauge/logger"
 	"github.com/getgauge/gauge/plugin"
 	"github.com/getgauge/gauge/runner"
@@ -48,6 +48,11 @@ func (e *scenarioExecutor) execute(i gauge.Item, r result.Result) {
 	scenarioResult := r.(*result.ScenarioResult)
 	scenarioResult.ProtoScenario.ExecutionStatus = gauge_messages.ExecutionStatus_PASSED
 	scenarioResult.ProtoScenario.Skipped = false
+	if(e.runner.Info().Killed){
+		e.errMap.ScenarioErrs[scenario] = append([]error{errors.New("skipped Reason: Runner is not alive")}, e.errMap.ScenarioErrs[scenario]...)
+		setSkipInfoInResult(scenarioResult, scenario, e.errMap)
+		return
+	}
 	if scenario.SpecDataTableRow.IsInitialized() && !shouldExecuteForRow(scenario.SpecDataTableRowIndex) {
 		e.errMap.ScenarioErrs[scenario] = append([]error{errors.New("skipped Reason: Doesn't satisfy --table-rows flag condition")}, e.errMap.ScenarioErrs[scenario]...)
 		setSkipInfoInResult(scenarioResult, scenario, e.errMap)
@@ -55,12 +60,12 @@ func (e *scenarioExecutor) execute(i gauge.Item, r result.Result) {
 	}
 	if _, ok := e.errMap.ScenarioErrs[scenario]; ok {
 		setSkipInfoInResult(scenarioResult, scenario, e.errMap)
-		event.Notify(event.NewExecutionEvent(event.ScenarioStart, scenario, scenarioResult, e.stream, *e.currentExecutionInfo))
-		event.Notify(event.NewExecutionEvent(event.ScenarioEnd, scenario, scenarioResult, e.stream, *e.currentExecutionInfo))
+		event.Notify(event.NewExecutionEvent(event.ScenarioStart, scenario, scenarioResult, e.stream, e.currentExecutionInfo))
+		event.Notify(event.NewExecutionEvent(event.ScenarioEnd, scenario, scenarioResult, e.stream, e.currentExecutionInfo))
 		return
 	}
-	event.Notify(event.NewExecutionEvent(event.ScenarioStart, scenario, scenarioResult, e.stream, *e.currentExecutionInfo))
-	defer event.Notify(event.NewExecutionEvent(event.ScenarioEnd, scenario, scenarioResult, e.stream, *e.currentExecutionInfo))
+	event.Notify(event.NewExecutionEvent(event.ScenarioStart, scenario, scenarioResult, e.stream, e.currentExecutionInfo))
+	defer event.Notify(event.NewExecutionEvent(event.ScenarioEnd, scenario, scenarioResult, e.stream, e.currentExecutionInfo))
 
 	res := e.initScenarioDataStore()
 	if res.GetFailed() {
@@ -72,8 +77,12 @@ func (e *scenarioExecutor) execute(i gauge.Item, r result.Result) {
 	if !scenarioResult.GetFailed() {
 		protoContexts := scenarioResult.ProtoScenario.GetContexts()
 		protoScenItems := scenarioResult.ProtoScenario.GetScenarioItems()
-		e.executeSteps(append(e.contexts, scenario.Steps...), append(protoContexts, protoScenItems...), scenarioResult)
-		// teardowns are not appended to previous call to executeSteps to ensure they are run irrespective of context/step failures
+		// context and steps are not appended together since sometime it cause the issue and the steps in step list and proto step list differs.
+		// This is done to fix https://github.com/getgauge/gauge/issues/1629
+		if e.executeSteps(e.contexts, protoContexts, scenarioResult) {
+			e.executeSteps(scenario.Steps, protoScenItems, scenarioResult)
+		}
+		// teardowns are not appended to previous call to executeSteps to ensure they are run irrespective of context/step failure
 		e.executeSteps(e.teardowns, scenarioResult.ProtoScenario.GetTearDownSteps(), scenarioResult)
 	}
 
@@ -136,7 +145,7 @@ func (e *scenarioExecutor) notifyAfterScenarioHook(scenarioResult *result.Scenar
 	e.pluginHandler.NotifyPlugins(message)
 }
 
-func (e *scenarioExecutor) executeSteps(steps []*gauge.Step, protoItems []*gauge_messages.ProtoItem, scenarioResult *result.ScenarioResult) {
+func (e *scenarioExecutor) executeSteps(steps []*gauge.Step, protoItems []*gauge_messages.ProtoItem, scenarioResult *result.ScenarioResult) bool {
 	var stepsIndex int
 	for _, protoItem := range protoItems {
 		if protoItem.GetItemType() == gauge_messages.ProtoItem_Concept || protoItem.GetItemType() == gauge_messages.ProtoItem_Step {
@@ -145,11 +154,12 @@ func (e *scenarioExecutor) executeSteps(steps []*gauge.Step, protoItems []*gauge
 			if failed {
 				scenarioResult.SetFailure()
 				if !recoverable {
-					return
+					return false
 				}
 			}
 		}
 	}
+	return true
 }
 
 func (e *scenarioExecutor) executeStep(step *gauge.Step, protoItem *gauge_messages.ProtoItem, scenarioResult *result.ScenarioResult) (bool, bool) {
@@ -173,8 +183,8 @@ func (e *scenarioExecutor) executeStep(step *gauge.Step, protoItem *gauge_messag
 func (e *scenarioExecutor) executeConcept(item *gauge.Step, protoConcept *gauge_messages.ProtoConcept, scenarioResult *result.ScenarioResult) *result.ConceptResult {
 	cptResult := result.NewConceptResult(protoConcept)
 	e.notifyConceptStarting(cptResult)
-	event.Notify(event.NewExecutionEvent(event.ConceptStart, item, nil, e.stream, *e.currentExecutionInfo))
-	defer event.Notify(event.NewExecutionEvent(event.ConceptEnd, nil, cptResult, e.stream, *e.currentExecutionInfo))
+	event.Notify(event.NewExecutionEvent(event.ConceptStart, item, nil, e.stream, e.currentExecutionInfo))
+	defer event.Notify(event.NewExecutionEvent(event.ConceptEnd, nil, cptResult, e.stream, e.currentExecutionInfo))
 
 	var conceptStepIndex int
 	for _, protoStep := range protoConcept.Steps {

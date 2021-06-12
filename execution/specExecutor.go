@@ -12,12 +12,12 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/getgauge/gauge-proto/go/gauge_messages"
 	"github.com/getgauge/gauge/config"
 	"github.com/getgauge/gauge/execution/event"
 	"github.com/getgauge/gauge/execution/result"
 	"github.com/getgauge/gauge/filter"
 	"github.com/getgauge/gauge/gauge"
-	"github.com/getgauge/gauge/gauge_messages"
 	"github.com/getgauge/gauge/logger"
 	"github.com/getgauge/gauge/parser"
 	"github.com/getgauge/gauge/plugin"
@@ -64,6 +64,10 @@ func newSpecExecutor(s *gauge.Specification, d *gauge.DataTable, r runner.Runner
 
 func (e *specExecutor) execute(executeBefore, execute, executeAfter bool) *result.SpecResult {
 	e.specResult = gauge.NewSpecResult(e.specification)
+	if e.runner.Info().Killed {
+		e.specResult.SetSkipped(true)
+		return e.specResult
+	}
 	if errs, ok := e.errMap.SpecErrs[e.specification]; ok {
 		if hasParseError(errs) {
 			e.failSpec()
@@ -80,7 +84,7 @@ func (e *specExecutor) execute(executeBefore, execute, executeAfter bool) *resul
 	}
 	e.specResult.AddSpecItems(resolvedSpecItems)
 	if executeBefore {
-		event.Notify(event.NewExecutionEvent(event.SpecStart, e.specification, e.specResult, e.stream, *e.currentExecutionInfo))
+		event.Notify(event.NewExecutionEvent(event.SpecStart, e.specification, e.specResult, e.stream, e.currentExecutionInfo))
 		if _, ok := e.errMap.SpecErrs[e.specification]; !ok {
 			if res := e.initSpecDataStore(); res.GetFailed() {
 				e.skipSpecForError(fmt.Errorf("failed to initialize spec datastore. Error: %s", res.GetErrorMessage()))
@@ -107,12 +111,11 @@ func (e *specExecutor) execute(executeBefore, execute, executeAfter bool) *resul
 				if _, ok := scnMap[s.Span.Start]; !ok {
 					scnMap[s.Span.Start] = true
 				}
-
 				r, err := e.executeScenario(s)
 				if err != nil {
 					logger.Fatalf(true, "Failed to resolve Specifications : %s", err.Error())
 				}
-				e.specResult.AddTableDrivenScenarioResult(r, gauge.ConvertToProtoTable(&s.DataTable.Table),
+				e.specResult.AddTableDrivenScenarioResult(r, gauge.ConvertToProtoTable(s.DataTable.Table),
 					s.ScenarioDataTableRowIndex, s.SpecDataTableRowIndex, s.SpecDataTableRow.IsInitialized())
 			}
 			e.specResult.ScenarioCount += len(scnMap)
@@ -128,7 +131,7 @@ func (e *specExecutor) execute(executeBefore, execute, executeAfter bool) *resul
 		if _, ok := e.errMap.SpecErrs[e.specification]; !ok {
 			e.notifyAfterSpecHook()
 		}
-		event.Notify(event.NewExecutionEvent(event.SpecEnd, e.specification, e.specResult, e.stream, *e.currentExecutionInfo))
+		event.Notify(event.NewExecutionEvent(event.SpecEnd, e.specification, e.specResult, e.stream, e.currentExecutionInfo))
 	}
 	return e.specResult
 }
@@ -282,7 +285,7 @@ func (e *specExecutor) getItemsForScenarioExecution(steps []*gauge.Step) ([]*gau
 
 func (e *specExecutor) dataTableLookup() (*gauge.ArgLookup, error) {
 	l := new(gauge.ArgLookup)
-	err := l.ReadDataTableRow(&e.specification.DataTable.Table, 0)
+	err := l.ReadDataTableRow(e.specification.DataTable.Table, 0)
 	return l, err
 }
 
@@ -326,7 +329,7 @@ func (e *specExecutor) executeScenario(scenario *gauge.Scenario) (*result.Scenar
 			ProtoScenario:             gauge.NewProtoScenario(scenario),
 			ScenarioDataTableRow:      gauge.ConvertToProtoTable(&scenario.ScenarioDataTableRow),
 			ScenarioDataTableRowIndex: scenario.ScenarioDataTableRowIndex,
-			ScenarioDataTable:         gauge.ConvertToProtoTable(&scenario.DataTable.Table),
+			ScenarioDataTable:         gauge.ConvertToProtoTable(scenario.DataTable.Table),
 		}
 		if err := e.addAllItemsForScenarioExecution(scenario, scenarioResult); err != nil {
 			return nil, err
@@ -361,6 +364,7 @@ func (e *specExecutor) addAllItemsForScenarioExecution(scenario *gauge.Scenario,
 		return err
 	}
 	if scenario.ScenarioDataTableRow.IsInitialized() {
+		parser.GetResolvedDataTablerows(&scenario.ScenarioDataTableRow)
 		if err = lookup.ReadDataTableRow(&scenario.ScenarioDataTableRow, 0); err != nil {
 			return err
 		}

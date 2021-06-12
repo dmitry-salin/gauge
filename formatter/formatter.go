@@ -14,8 +14,8 @@ import (
 	"strings"
 
 	"github.com/getgauge/common"
+	"github.com/getgauge/gauge-proto/go/gauge_messages"
 	"github.com/getgauge/gauge/gauge"
-	"github.com/getgauge/gauge/gauge_messages"
 	"github.com/getgauge/gauge/logger"
 	"github.com/getgauge/gauge/parser"
 	"github.com/getgauge/gauge/util"
@@ -60,18 +60,17 @@ func FormatStep(step *gauge.Step) string {
 	paramCount := strings.Count(text, gauge.ParameterPlaceholder)
 	for i := 0; i < paramCount; i++ {
 		argument := step.Args[i]
-		formattedArg := ""
+		var formattedArg string
+		stripBeforeArg := ""
 		if argument.ArgType == gauge.TableArg {
-			formattedTable := FormatTable(&argument.Table)
-			formattedArg = fmt.Sprintf("\n%s", formattedTable)
-		} else if argument.ArgType == gauge.Dynamic {
-			formattedArg = fmt.Sprintf("<%s>", parser.GetUnescapedString(argument.Name))
-		} else if argument.ArgType == gauge.SpecialString || argument.ArgType == gauge.SpecialTable {
+			formattedArg = fmt.Sprintf("\n%s", FormatTable(&argument.Table))
+			stripBeforeArg = " "
+		} else if argument.ArgType == gauge.Dynamic || argument.ArgType == gauge.SpecialString || argument.ArgType == gauge.SpecialTable {
 			formattedArg = fmt.Sprintf("<%s>", parser.GetUnescapedString(argument.Name))
 		} else {
 			formattedArg = fmt.Sprintf("\"%s\"", parser.GetUnescapedString(argument.Value))
 		}
-		text = strings.Replace(text, gauge.ParameterPlaceholder, formattedArg, 1)
+		text = strings.Replace(text, stripBeforeArg + gauge.ParameterPlaceholder, formattedArg, 1)
 	}
 	stepText := ""
 	if strings.HasSuffix(text, "\n") {
@@ -85,25 +84,21 @@ func FormatStep(step *gauge.Step) string {
 func FormatStepWithResolvedArgs(step *gauge.Step) string {
 	text := step.Value
 	paramCount := strings.Count(text, gauge.ParameterPlaceholder)
-	for i := 0; i < paramCount; i++ {
-		argument := step.Args[i]
-		for i := range step.GetFragments() {
-			stepFragmet := step.GetFragments()[i]
-			if argument.ArgType == gauge.Dynamic && stepFragmet.FragmentType == gauge_messages.Fragment_Parameter && stepFragmet.Parameter.ParameterType == gauge_messages.Parameter_Dynamic {
-				formattedArg := fmt.Sprintf("\"%s\"", stepFragmet.GetParameter().Value)
-				text = strings.Replace(text, gauge.ParameterPlaceholder, formattedArg, 1)
-			} else if argument.ArgType == gauge.TableArg && stepFragmet.FragmentType == gauge_messages.Fragment_Parameter && stepFragmet.Parameter.ParameterType == gauge_messages.Parameter_Table {
-				formattedTable := FormatTable(&argument.Table)
-				formattedArg := fmt.Sprintf("\n%s", formattedTable)
-				text = strings.Replace(text, gauge.ParameterPlaceholder, formattedArg, 1)
-			} else if argument.ArgType == gauge.Static && stepFragmet.FragmentType == gauge_messages.Fragment_Parameter && stepFragmet.Parameter.ParameterType == gauge_messages.Parameter_Static {
-				formattedArg := fmt.Sprintf("\"%s\"", stepFragmet.GetParameter().Value)
-				text = strings.Replace(text, gauge.ParameterPlaceholder, formattedArg, 1)
-			} else if (argument.ArgType == gauge.SpecialString || argument.ArgType == gauge.SpecialTable) && stepFragmet.FragmentType == gauge_messages.Fragment_Parameter && (stepFragmet.Parameter.ParameterType == gauge_messages.Parameter_Special_String || stepFragmet.Parameter.ParameterType == gauge_messages.Parameter_Special_Table) {
-				formattedArg := fmt.Sprintf("\"%s\"", stepFragmet.GetParameter().Value)
-				text = strings.Replace(text, gauge.ParameterPlaceholder, formattedArg, 1)
-			}
+	sf := make([]*gauge_messages.Fragment, 0)
+	for _, f := range step.GetFragments() {
+		if f.FragmentType == gauge_messages.Fragment_Parameter {
+			sf = append(sf, f)
 		}
+	}
+	for i := 0; i < paramCount; i++ {
+		a := step.Args[i]
+		var formattedArg string
+		if a.ArgType == gauge.TableArg && sf[i].Parameter.ParameterType == gauge_messages.Parameter_Table {
+			formattedArg = fmt.Sprintf("\n%s", FormatTable(&a.Table))
+		} else {
+			formattedArg = fmt.Sprintf("\"%s\"", sf[i].GetParameter().Value)
+		}
+		text = strings.Replace(text, gauge.ParameterPlaceholder, formattedArg, 1)
 	}
 	stepText := ""
 	if strings.HasSuffix(text, "\n") {
@@ -159,14 +154,15 @@ func FormatTable(table *gauge.Table) string {
 }
 
 func addPaddingToCell(cellValue string, width int) string {
-	padding := getRepeatedChars(" ", width-len(cellValue))
-	return fmt.Sprintf("%s%s", cellValue, padding)
+	cellRunes := []rune(cellValue)
+	padding := getRepeatedChars(" ", width-len(cellRunes))
+	return fmt.Sprintf("%s%s", string(cellRunes), padding)
 }
 
 func findLongestCellWidth(columnCells []gauge.TableCell, minValue int) int {
 	longestLength := minValue
 	for _, cellValue := range columnCells {
-		cellValueLen := len(cellValue.GetValue())
+		cellValueLen := len([]rune(cellValue.GetValue()))
 		if cellValueLen > longestLength {
 			longestLength = cellValueLen
 		}
@@ -269,7 +265,7 @@ func formatItem(item gauge.Item) string {
 		return FormatStep(step)
 	case gauge.DataTableKind:
 		dataTable := item.(*gauge.DataTable)
-		return FormatTable(&dataTable.Table)
+		return FormatTable(dataTable.Table)
 	case gauge.TagKind:
 		tags := item.(*gauge.Tags)
 		return FormatTags(tags)

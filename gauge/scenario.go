@@ -49,6 +49,10 @@ func (scenario *Scenario) AddTags(tags *Tags) {
 	scenario.AddItem(tags)
 }
 
+func (scenario *Scenario) AddExternalDataTable(externalTable *DataTable) {
+	scenario.DataTable = *externalTable
+	scenario.AddItem(externalTable)
+}
 func (scenario *Scenario) NTags() int {
 	if scenario.Tags == nil {
 		return 0
@@ -62,7 +66,7 @@ func (scenario *Scenario) AddComment(comment *Comment) {
 }
 
 func (scenario *Scenario) AddDataTable(table *Table) {
-	scenario.DataTable.Table = *table
+	scenario.DataTable.Table = table
 	scenario.AddItem(&scenario.DataTable)
 }
 

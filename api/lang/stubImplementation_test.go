@@ -16,7 +16,7 @@ import (
 	"time"
 
 	"github.com/getgauge/common"
-	gm "github.com/getgauge/gauge/gauge_messages"
+	gm "github.com/getgauge/gauge-proto/go/gauge_messages"
 	"github.com/getgauge/gauge/runner"
 	"github.com/getgauge/gauge/util"
 	"github.com/sourcegraph/go-langserver/pkg/lsp"
@@ -37,6 +37,25 @@ func TestGetImplementationFilesShouldReturnFilePaths(t *testing.T) {
 	}
 	lRunner.runner = &runner.GrpcRunner{LegacyClient: &mockClient{responses: responses}, Timeout: time.Second * 30}
 	implFiles, err := getImplFiles(&jsonrpc2.Request{Params: &p})
+
+	if err != nil {
+		t.Fatalf("Got error %s", err.Error())
+	}
+
+	want := []string{"file"}
+
+	if !reflect.DeepEqual(implFiles, want) {
+		t.Errorf("want: `%s`,\n got: `%s`", want, implFiles)
+	}
+}
+
+func TestGetImplementationFilesShouldReturnFilePathsIfParamIsNil(t *testing.T) {
+	responses := map[gm.Message_MessageType]interface{}{}
+	responses[gm.Message_ImplementationFileListResponse] = &gm.ImplementationFileListResponse{
+		ImplementationFilePaths: []string{"file"},
+	}
+	lRunner.runner = &runner.GrpcRunner{LegacyClient: &mockClient{responses: responses}, Timeout: time.Second * 30}
+	implFiles, err := getImplFiles(&jsonrpc2.Request{})
 
 	if err != nil {
 		t.Fatalf("Got error %s", err.Error())

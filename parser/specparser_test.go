@@ -373,7 +373,7 @@ func TestScenarioWithDataTable(t *testing.T) {
 	t.Run("Scenario with datatable when AllowScenarioDatatable=True", func(t *testing.T) {
 		env.AllowScenarioDatatable = func() bool { return true }
 		s := subject()
-		if &s.DataTable.Table == nil {
+		if s.DataTable.Table == nil {
 			t.Error("expected scenario datatable to be not nil")
 		}
 		v := len(s.Items)
@@ -1134,6 +1134,49 @@ func TestParseScenarioWithDataTable(t *testing.T) {
 	}
 
 	t.Run("Parse Scenario with datatable when AllowScenarioDatatable=True", func(t *testing.T) {
+		env.AllowScenarioDatatable = func() bool { return true }
+		s := subject()
+		v := len(s.DataTable.Table.Rows())
+		if v != 5 {
+			t.Errorf("expected scenario to have 5 rows, got %d", v)
+		}
+		v = len(s.DataTable.Table.Columns)
+		if v != 2 {
+			t.Errorf("expected scenario to have 2 columns, got %d", v)
+		}
+	})
+
+	t.Run("Parse Scenario with datatable when AllowScenarioDatatable=False", func(t *testing.T) {
+		env.AllowScenarioDatatable = func() bool { return false }
+		s := subject()
+		v := len(s.DataTable.Table.Rows())
+		if v != 0 {
+			t.Errorf("expected scenario to have no rows, got %d", v)
+		}
+	})
+}
+
+func TestParseScenarioWithExternalDataTable(t *testing.T) {
+	p := new(SpecParser)
+	var subject = func() *gauge.Scenario {
+		spec, _, err := p.Parse(`Specification Heading
+=====================
+* Vowels in English language are "aeiou".
+
+Vowel counts in single word
+---------------------------
+table:testdata/data.csv
+
+* The word <Word> has <Vowel Count> vowels.
+
+`, gauge.NewConceptDictionary(), "")
+		if err != nil {
+			t.Error(err)
+		}
+		return spec.Scenarios[0]
+	}
+
+	t.Run("Parse Scenario with external datatable when AllowScenarioDatatable=True", func(t *testing.T) {
 		env.AllowScenarioDatatable = func() bool { return true }
 		s := subject()
 		v := len(s.DataTable.Table.Rows())

@@ -70,7 +70,7 @@ func printJSONVersion() {
 	}
 	// logger can not be used, since it breaks the json format,
 	// The logger adds out, nessage as key which vscode plugin does not understand.
-	fmt.Println(fmt.Sprintf("%s\n", string(b)))
+	fmt.Printf("%s\n\n", string(b))
 }
 
 func printTextVersion() {
@@ -83,7 +83,7 @@ func printTextVersion() {
 	logger.Infof(true, "Plugins\n-------")
 	allPluginsWithVersion, err := pluginInfo.GetAllInstalledPluginsWithVersion()
 	if err != nil {
-		logger.Fatalf(true, "No plugins found\nPlugins can be installed with `gauge install {plugin-name}`")
+		logger.Infof(true, "No plugins found\nPlugins can be installed with `gauge install {plugin-name}`")
 	}
 	for _, pluginInfo := range allPluginsWithVersion {
 		logger.Infof(true, "%s (%s)", pluginInfo.Name, filepath.Base(pluginInfo.Path))

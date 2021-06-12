@@ -22,10 +22,10 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/getgauge/gauge-proto/go/gauge_messages"
 	"github.com/getgauge/gauge/config"
 	"github.com/getgauge/gauge/formatter"
 	"github.com/getgauge/gauge/gauge"
-	"github.com/getgauge/gauge/gauge_messages"
 	"github.com/getgauge/gauge/logger"
 	"github.com/getgauge/gauge/parser"
 	"github.com/getgauge/gauge/runner"
@@ -48,13 +48,14 @@ type refactoringResult struct {
 	Warnings           []string
 }
 
-func (refactoringResult *refactoringResult) String() string {
-	result := fmt.Sprintf("Refactoring result from gauge:\n")
-	result += fmt.Sprintf("Specs changed        : %s\n", refactoringResult.specFilesChanged())
-	result += fmt.Sprintf("Concepts changed     : %s\n", refactoringResult.conceptFilesChanged())
-	result += fmt.Sprintf("Source files changed : %s\n", refactoringResult.runnerFilesChanged())
-	result += fmt.Sprintf("Warnings             : %s\n", refactoringResult.Warnings)
-	return result
+func (res *refactoringResult) String() string {
+	o := `Refactoring result from gauge:
+Specs changed        : %s
+Concepts changed     : %s
+Source files changed : %s
+Warnings             : %s
+`
+	return fmt.Sprintf(o, res.specFilesChanged(), res.conceptFilesChanged(), res.runnerFilesChanged(), res.Warnings)
 }
 
 func (refactoringResult *refactoringResult) appendWarnings(warnings []*parser.Warning) {

@@ -11,8 +11,8 @@ import (
 
 	"strings"
 
+	m "github.com/getgauge/gauge-proto/go/gauge_messages"
 	"github.com/getgauge/gauge/execution/result"
-	m "github.com/getgauge/gauge/gauge_messages"
 )
 
 func mergeDataTableSpecResults(sResult *result.SuiteResult) *result.SuiteResult {
@@ -62,7 +62,11 @@ func hasTableDrivenSpec(results []*result.SpecResult) bool {
 }
 
 func mergeResults(results []*result.SpecResult) *result.SpecResult {
-	specResult := &result.SpecResult{ProtoSpec: &m.ProtoSpec{IsTableDriven: hasTableDrivenSpec(results)}}
+	specResult := &result.SpecResult{ProtoSpec: &m.ProtoSpec{
+		IsTableDriven:    hasTableDrivenSpec(results),
+		PreHookMessages:  results[0].ProtoSpec.PreHookMessages,
+		PostHookMessages: results[len(results)-1].ProtoSpec.PostHookMessages,
+	}}
 	var scnResults []*m.ProtoItem
 	table := &m.ProtoTable{}
 	dataTableScnResults := make(map[string][]*m.ProtoTableDrivenScenario)
@@ -77,7 +81,9 @@ func mergeResults(results []*result.SpecResult) *result.SpecResult {
 		if res.GetFailed() {
 			specResult.IsFailed = true
 		}
-		var tableRows []*m.ProtoTableRow
+
+		var tableRows []*m.ProtoTableRow // nolint
+
 		for _, item := range res.ProtoSpec.Items {
 			switch item.ItemType {
 			case m.ProtoItem_Scenario:
