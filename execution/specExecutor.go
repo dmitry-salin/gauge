@@ -189,21 +189,19 @@ func (e *specExecutor) notifyBeforeSpecHook() {
 		len(e.mergedSpecsDataTable.Table.Columns[0]) > 1
 	var specDataTableRow *gauge_messages.ProtoItem
 	var idx int
-	if sendMergedTable {
-		if e.specResult.ProtoSpec.IsTableDriven {
-			for i, item := range e.specResult.ProtoSpec.Items {
-				if item.ItemType == gauge_messages.ProtoItem_Table {
-					specDataTableRow = item
-					idx = i
-					break
-				}
+	if sendMergedTable && e.specResult.ProtoSpec.IsTableDriven {
+		for i, item := range e.specResult.ProtoSpec.Items {
+			if item.ItemType == gauge_messages.ProtoItem_Table {
+				specDataTableRow = item
+				idx = i
+				break
 			}
 		}
 		e.specResult.ProtoSpec.Items[idx] = gauge.ConvertToProtoItem(e.mergedSpecsDataTable)
 	}
 	m.SpecExecutionStartingRequest.SpecResult = gauge.ConvertToProtoSpecResult(e.specResult)
 	e.pluginHandler.NotifyPlugins(m)
-	if sendMergedTable {
+	if sendMergedTable && e.specResult.ProtoSpec.IsTableDriven {
 		e.specResult.ProtoSpec.Items[idx] = specDataTableRow
 	}
 }
