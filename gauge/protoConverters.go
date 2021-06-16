@@ -149,7 +149,7 @@ func convertToProtoParameter(arg *StepArg) *gauge_messages.Parameter {
 }
 
 func ConvertToProtoTable(table *Table) *gauge_messages.ProtoTable {
-	if table == nil {
+	if !table.IsInitialized() {
 		return nil
 	}
 	protoTableParam := &gauge_messages.ProtoTable{Rows: make([]*gauge_messages.ProtoTableRow, 0)}
@@ -190,10 +190,7 @@ func ConvertToProtoSpecResult(specResult *result.SpecResult) *gauge_messages.Pro
 
 func ConvertToProtoScenarioResult(scenarioResult *result.ScenarioResult) *gauge_messages.ProtoScenarioResult {
 	return &gauge_messages.ProtoScenarioResult{
-		ProtoItem: &gauge_messages.ProtoItem{
-			ItemType: gauge_messages.ProtoItem_Scenario,
-			Scenario: scenarioResult.ProtoScenario,
-		},
+		ProtoItem:     scenarioResult.ConvertToProtoItem(),
 		ExecutionTime: scenarioResult.ExecTime(),
 		Timestamp:     time.Now().Format(time.RFC3339),
 	}

@@ -12,6 +12,8 @@ import (
 
 type ScenarioResult struct {
 	ProtoScenario             *gauge_messages.ProtoScenario
+	SpecDataTableRow          *gauge_messages.ProtoTable
+	SpecDataTableRowIndex     int
 	ScenarioDataTableRow      *gauge_messages.ProtoTable
 	ScenarioDataTableRowIndex int
 	ScenarioDataTable         *gauge_messages.ProtoTable
@@ -30,6 +32,10 @@ func (s ScenarioResult) SetFailure() {
 // GetFailed returns the state of the scenario result
 func (s ScenarioResult) GetFailed() bool {
 	return s.ProtoScenario.GetExecutionStatus() == gauge_messages.ExecutionStatus_FAILED
+}
+
+func (s ScenarioResult) GetSkipped() bool {
+	return s.ProtoScenario.GetExecutionStatus() == gauge_messages.ExecutionStatus_SKIPPED
 }
 
 func (s ScenarioResult) AddItems(protoItems []*gauge_messages.ProtoItem) {
@@ -56,7 +62,7 @@ func (s ScenarioResult) AddExecTime(execTime int64) {
 
 // ExecTime returns the time taken for scenario execution
 func (s ScenarioResult) ExecTime() int64 {
-	return s.ProtoScenario.ExecutionTime
+	return s.ProtoScenario.GetExecutionTime()
 }
 
 func (s ScenarioResult) updateExecutionTimeFromItems(protoItems []*gauge_messages.ProtoItem) {
@@ -68,6 +74,29 @@ func (s ScenarioResult) updateExecutionTimeFromItems(protoItems []*gauge_message
 			conceptExecTime := item.GetConcept().GetConceptExecutionResult().GetExecutionResult().GetExecutionTime()
 			s.AddExecTime(conceptExecTime)
 		}
+	}
+}
+
+func (s ScenarioResult) SpanStart() int64 {
+	return s.ProtoScenario.GetSpan().GetStart()
+}
+
+func (s ScenarioResult) ConvertToProtoItem() *gauge_messages.ProtoItem {
+	isScenarioTableRelated := s.SpecDataTableRow != nil
+	isScenarioTableDriven := s.ScenarioDataTableRow != nil
+	if isScenarioTableRelated || isScenarioTableDriven {
+		protoTableDrivenScenario := &gauge_messages.ProtoTableDrivenScenario{
+			Scenario:              s.ProtoScenario,
+			TableRowIndex:         int32(s.SpecDataTableRowIndex),
+			ScenarioTableRowIndex: int32(s.ScenarioDataTableRowIndex),
+			IsSpecTableDriven:     isScenarioTableRelated,
+			IsScenarioTableDriven: isScenarioTableDriven,
+			ScenarioDataTable:     s.ScenarioDataTable,
+			ScenarioTableRow:      s.ScenarioDataTableRow,
+		}
+		return &gauge_messages.ProtoItem{ItemType: gauge_messages.ProtoItem_TableDrivenScenario, TableDrivenScenario: protoTableDrivenScenario}
+	} else {
+		return &gauge_messages.ProtoItem{ItemType: gauge_messages.ProtoItem_Scenario, Scenario: s.ProtoScenario}
 	}
 }
 

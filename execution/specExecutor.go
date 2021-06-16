@@ -97,33 +97,9 @@ func (e *specExecutor) execute(executeBefore, execute, executeAfter bool) *resul
 		}
 	}
 	if execute && !e.specResult.GetFailed() {
-		if e.specification.DataTable.Table.GetRowCount() == 0 {
-			others, tableDriven := parser.FilterTableRelatedScenarios(e.specification.Scenarios, func(s *gauge.Scenario) bool {
-				return s.ScenarioDataTableRow.IsInitialized()
-			})
-			results, err := e.executeScenarios(others)
-			if err != nil {
-				logger.Fatalf(true, "Failed to resolve Specifications : %s", err.Error())
-			}
-			e.specResult.AddScenarioResults(results)
-			scnMap := make(map[int]bool)
-			for _, s := range tableDriven {
-				if _, ok := scnMap[s.Span.Start]; !ok {
-					scnMap[s.Span.Start] = true
-				}
-				r, err := e.executeScenario(s)
-				if err != nil {
-					logger.Fatalf(true, "Failed to resolve Specifications : %s", err.Error())
-				}
-				e.specResult.AddTableDrivenScenarioResult(r, gauge.ConvertToProtoTable(s.DataTable.Table),
-					s.ScenarioDataTableRowIndex, s.SpecDataTableRowIndex, s.SpecDataTableRow.IsInitialized())
-			}
-			e.specResult.ScenarioCount += len(scnMap)
-		} else {
-			err := e.executeSpec()
-			if err != nil {
-				logger.Fatalf(true, "Failed to execute Specification %s : %s", e.specification.Heading.Value, err.Error())
-			}
+		err := e.executeSpec()
+		if err != nil {
+			logger.Fatalf(true, "Failed to execute Specification %s : %s", e.specification.Heading.Value, err.Error())
 		}
 	}
 	e.specResult.SetSkipped(e.specResult.Skipped || e.specResult.ScenarioSkippedCount == len(e.specification.Scenarios))
@@ -136,33 +112,13 @@ func (e *specExecutor) execute(executeBefore, execute, executeAfter bool) *resul
 	return e.specResult
 }
 
-func (e *specExecutor) executeTableRelatedScenarios(scenarios []*gauge.Scenario) error {
-	if len(scenarios) > 0 {
-		index := scenarios[0].SpecDataTableRowIndex
-		sceRes, err := e.executeScenarios(scenarios)
-		if err != nil {
-			return err
-		}
-		specResult := [][]result.Result{sceRes}
-		e.specResult.AddTableRelatedScenarioResult(specResult, index)
-	}
-	return nil
-}
-
 func (e *specExecutor) executeSpec() error {
 	parser.GetResolvedDataTablerows(e.specification.DataTable.Table)
-	nonTableRelatedScenarios, tableRelatedScenarios := parser.FilterTableRelatedScenarios(e.specification.Scenarios, func(s *gauge.Scenario) bool {
-		return s.SpecDataTableRow.IsInitialized()
-	})
-	res, err := e.executeScenarios(nonTableRelatedScenarios)
+	res, err := e.executeScenarios(e.specification.Scenarios)
 	if err != nil {
 		return err
 	}
 	e.specResult.AddScenarioResults(res)
-	err = e.executeTableRelatedScenarios(tableRelatedScenarios)
-	if err != nil {
-		return err
-	}
 	return nil
 }
 
@@ -287,8 +243,8 @@ func (e *specExecutor) dataTableLookup() (*gauge.ArgLookup, error) {
 	return l, err
 }
 
-func (e *specExecutor) executeScenarios(scenarios []*gauge.Scenario) ([]result.Result, error) {
-	var scenarioResults []result.Result
+func (e *specExecutor) executeScenarios(scenarios []*gauge.Scenario) ([]*result.ScenarioResult, error) {
+	var scenarioResults []*result.ScenarioResult
 	for _, scenario := range scenarios {
 		sceResult, err := e.executeScenario(scenario)
 		if err != nil {
@@ -325,6 +281,8 @@ func (e *specExecutor) executeScenario(scenario *gauge.Scenario) (*result.Scenar
 
 		scenarioResult = &result.ScenarioResult{
 			ProtoScenario:             gauge.NewProtoScenario(scenario),
+			SpecDataTableRow:          gauge.ConvertToProtoTable(&scenario.SpecDataTableRow),
+			SpecDataTableRowIndex:     scenario.SpecDataTableRowIndex,
 			ScenarioDataTableRow:      gauge.ConvertToProtoTable(&scenario.ScenarioDataTableRow),
 			ScenarioDataTableRowIndex: scenario.ScenarioDataTableRowIndex,
 			ScenarioDataTable:         gauge.ConvertToProtoTable(scenario.DataTable.Table),
@@ -334,9 +292,6 @@ func (e *specExecutor) executeScenario(scenario *gauge.Scenario) (*result.Scenar
 		}
 		e.scenarioExecutor.execute(scenario, scenarioResult)
 		retriesCount++
-		if scenarioResult.ProtoScenario.GetExecutionStatus() == gauge_messages.ExecutionStatus_SKIPPED {
-			e.specResult.ScenarioSkippedCount++
-		}
 
 		if !(shouldRetry && scenarioResult.GetFailed()) {
 			break

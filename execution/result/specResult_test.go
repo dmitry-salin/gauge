@@ -26,7 +26,7 @@ func (s *MySuite) TestAddScenarioResults(c *gc.C) {
 	item3 := &gauge_messages.ProtoItem{ItemType: gauge_messages.ProtoItem_Step, Step: &gauge_messages.ProtoStep{StepExecutionResult: step3Res}}
 	items := []*gauge_messages.ProtoItem{item1, item2, item3}
 	scenarioResult := NewScenarioResult(&gauge_messages.ProtoScenario{ScenarioHeading: heading, ScenarioItems: items})
-	results := make([]Result, 0)
+	results := make([]*ScenarioResult, 0)
 	results = append(results, scenarioResult)
 
 	specResult.AddScenarioResults(results)
@@ -55,17 +55,15 @@ func (s *MySuite) TestAddTableRelatedScenarioResult(c *gc.C) {
 	items := []*gauge_messages.ProtoItem{item1, item2, item3}
 	scenarioResult1 := NewScenarioResult(&gauge_messages.ProtoScenario{ScenarioHeading: heading1, ScenarioItems: items})
 	scenarioResult2 := NewScenarioResult(&gauge_messages.ProtoScenario{ScenarioHeading: heading2, ScenarioItems: items})
-	scenarioResultsForIndex0 := []Result{scenarioResult1, scenarioResult2}
-	scenarioResultsForIndex1 := []Result{scenarioResult1, scenarioResult2}
-	results := make([][]Result, 0)
-	results = append(results, scenarioResultsForIndex0)
-	results = append(results, scenarioResultsForIndex1)
+	results := make([]*ScenarioResult, 0)
+	results = append(results, scenarioResult1)
+	results = append(results, scenarioResult2)
 
-	specResult.AddTableRelatedScenarioResult(results, 1)
+	specResult.AddScenarioResults(results)
 
 	c.Assert(specResult.GetFailed(), gc.Equals, false)
 	c.Assert(specResult.ScenarioCount, gc.Equals, 2)
-	c.Assert(specResult.ProtoSpec.IsTableDriven, gc.Equals, true)
+	c.Assert(specResult.ProtoSpec.IsTableDriven, gc.Equals, false)
 	c.Assert(specResult.ScenarioFailedCount, gc.Equals, 0)
 	c.Assert(specResult.ExecutionTime, gc.Equals, int64(0))
 }

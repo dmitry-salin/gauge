@@ -36,68 +36,41 @@ func (specResult *SpecResult) AddSpecItems(resolvedItems []*gauge_messages.Proto
 	specResult.ProtoSpec.Items = append(specResult.ProtoSpec.Items, resolvedItems...)
 }
 
-// AddScenarioResults adds the scenario result to the spec result.
-func (specResult *SpecResult) AddScenarioResults(scenarioResults []Result) {
+// AddScenarioResults adds the result of each scenario to spec result.
+func (specResult *SpecResult) AddScenarioResults(scenarioResults []*ScenarioResult) {
+	tableDrivenScenariosMap := make(map[int64]bool)
+
 	for _, scenarioResult := range scenarioResults {
+		specResult.AddExecTime(scenarioResult.ExecTime())
+		item := scenarioResult.ConvertToProtoItem()
+
+		isScenarioTableRelated := false
+		isScenarioTableDriven := false
+		if item.GetItemType() == gauge_messages.ProtoItem_TableDrivenScenario {
+			if item.GetTableDrivenScenario().IsSpecTableDriven {
+				isScenarioTableRelated = true
+			}
+			isScenarioTableDriven = item.GetTableDrivenScenario().IsScenarioTableDriven
+		}
+		if isScenarioTableDriven {
+			if _, ok := tableDrivenScenariosMap[scenarioResult.SpanStart()]; !ok {
+				tableDrivenScenariosMap[scenarioResult.SpanStart()] = true
+				specResult.ScenarioCount++
+			}
+		} else {
+			specResult.ScenarioCount++
+		}
 		if scenarioResult.GetFailed() {
 			specResult.IsFailed = true
 			specResult.ScenarioFailedCount++
-		}
-		specResult.AddExecTime(scenarioResult.ExecTime())
-		specResult.ProtoSpec.Items = append(specResult.ProtoSpec.Items, &gauge_messages.ProtoItem{ItemType: gauge_messages.ProtoItem_Scenario, Scenario: scenarioResult.Item().(*gauge_messages.ProtoScenario)})
-	}
-	specResult.ScenarioCount += len(scenarioResults)
-}
-
-func (specResult *SpecResult) AddTableDrivenScenarioResult(r *ScenarioResult, t *gauge_messages.ProtoTable, scenarioRowIndex int, specRowIndex int, specTableDriven bool) {
-	if r.GetFailed() {
-		specResult.IsFailed = true
-		specResult.ScenarioFailedCount++
-	}
-	specResult.AddExecTime(r.ExecTime())
-	pItem := &gauge_messages.ProtoItem{ // nolint
-		ItemType: gauge_messages.ProtoItem_TableDrivenScenario,
-		TableDrivenScenario: &gauge_messages.ProtoTableDrivenScenario{
-			Scenario:              r.Item().(*gauge_messages.ProtoScenario),
-			IsScenarioTableDriven: true,
-			ScenarioTableRowIndex: int32(scenarioRowIndex),
-			IsSpecTableDriven:     specTableDriven,
-			ScenarioDataTable:     t,
-			TableRowIndex:         int32(specRowIndex),
-			ScenarioTableRow:      r.ScenarioDataTableRow,
-		},
-	}
-	specResult.ProtoSpec.Items = append(specResult.ProtoSpec.Items, pItem)
-}
-
-// AddTableRelatedScenarioResult aggregates the data table driven spec results.
-func (specResult *SpecResult) AddTableRelatedScenarioResult(scenarioResults [][]Result, index int) {
-	numberOfScenarios := len(scenarioResults[0])
-
-	for scenarioIndex := 0; scenarioIndex < numberOfScenarios; scenarioIndex++ {
-		scenarioFailed := false
-		for _, eachRow := range scenarioResults {
-			protoScenario := eachRow[scenarioIndex].Item().(*gauge_messages.ProtoScenario)
-			specResult.AddExecTime(protoScenario.GetExecutionTime())
-			if protoScenario.GetExecutionStatus() == gauge_messages.ExecutionStatus_FAILED {
-				scenarioFailed = true
-				specResult.FailedDataTableRows = append(specResult.FailedDataTableRows, int32(index))
+			if isScenarioTableRelated {
+				specResult.FailedDataTableRows = append(specResult.FailedDataTableRows, int32(scenarioResult.SpecDataTableRowIndex))
 			}
-			protoTableDrivenScenario := &gauge_messages.ProtoTableDrivenScenario{
-				Scenario:         protoScenario,
-				TableRowIndex:    int32(index),
-				ScenarioTableRow: eachRow[scenarioIndex].(*ScenarioResult).ScenarioDataTableRow,
-			}
-			protoItem := &gauge_messages.ProtoItem{ItemType: gauge_messages.ProtoItem_TableDrivenScenario, TableDrivenScenario: protoTableDrivenScenario} // nolint
-			specResult.ProtoSpec.Items = append(specResult.ProtoSpec.Items, protoItem)
+		} else if scenarioResult.GetSkipped() {
+			specResult.ScenarioSkippedCount++
 		}
-		if scenarioFailed {
-			specResult.ScenarioFailedCount++
-			specResult.IsFailed = true
-		}
+		specResult.ProtoSpec.Items = append(specResult.ProtoSpec.Items, item)
 	}
-	specResult.ProtoSpec.IsTableDriven = true
-	specResult.ScenarioCount += numberOfScenarios
 }
 
 func (specResult *SpecResult) AddExecTime(execTime int64) {
