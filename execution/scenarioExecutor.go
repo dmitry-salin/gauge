@@ -9,11 +9,15 @@ package execution
 import (
 	"fmt"
 
+	"github.com/getgauge/gauge/parser"
+
 	"errors"
 
 	"github.com/getgauge/gauge-proto/go/gauge_messages"
+	"github.com/getgauge/gauge/env"
 	"github.com/getgauge/gauge/execution/event"
 	"github.com/getgauge/gauge/execution/result"
+	"github.com/getgauge/gauge/filter"
 	"github.com/getgauge/gauge/gauge"
 	"github.com/getgauge/gauge/logger"
 	"github.com/getgauge/gauge/plugin"
@@ -48,13 +52,18 @@ func (e *scenarioExecutor) execute(i gauge.Item, r result.Result) {
 	scenarioResult := r.(*result.ScenarioResult)
 	scenarioResult.ProtoScenario.ExecutionStatus = gauge_messages.ExecutionStatus_PASSED
 	scenarioResult.ProtoScenario.Skipped = false
-	if(e.runner.Info().Killed){
+	if e.runner.Info().Killed {
 		e.errMap.ScenarioErrs[scenario] = append([]error{errors.New("skipped Reason: Runner is not alive")}, e.errMap.ScenarioErrs[scenario]...)
 		setSkipInfoInResult(scenarioResult, scenario, e.errMap)
 		return
 	}
 	if scenario.SpecDataTableRow.IsInitialized() && !shouldExecuteForRow(scenario.SpecDataTableRowIndex) {
 		e.errMap.ScenarioErrs[scenario] = append([]error{errors.New("skipped Reason: Doesn't satisfy --table-rows flag condition")}, e.errMap.ScenarioErrs[scenario]...)
+		setSkipInfoInResult(scenarioResult, scenario, e.errMap)
+		return
+	}
+	if !shouldExecuteForSpecDataTable(scenario) {
+        e.errMap.ScenarioErrs[scenario] = append([]error{errors.New("skipped Reason: Doesn't satisfy tags expr from spec_table_filter")}, e.errMap.ScenarioErrs[scenario]...)
 		setSkipInfoInResult(scenarioResult, scenario, e.errMap)
 		return
 	}
@@ -69,7 +78,7 @@ func (e *scenarioExecutor) execute(i gauge.Item, r result.Result) {
 
 	res := e.initScenarioDataStore()
 	if res.GetFailed() {
-		e.handleScenarioDataStoreFailure(scenarioResult, scenario, fmt.Errorf("Failed to initialize scenario datastore. Error: %s", res.GetErrorMessage()))
+		e.handleScenarioDataStoreFailure(scenarioResult, scenario, fmt.Errorf("failed to initialize scenario datastore. Error: %s", res.GetErrorMessage()))
 		return
 	}
 	e.notifyBeforeScenarioHook(scenarioResult)
@@ -88,6 +97,27 @@ func (e *scenarioExecutor) execute(i gauge.Item, r result.Result) {
 
 	e.notifyAfterScenarioHook(scenarioResult)
 	scenarioResult.UpdateExecutionTime()
+}
+
+func shouldExecuteForSpecDataTable(sc *gauge.Scenario) bool {
+	if !sc.SpecDataTableRow.IsInitialized() || len(sc.SpecDataTableFilter) == 0 {
+		return true
+	}
+	// TODO(dsalin) maybe it is worth to move ValidateTagExpression to ScenarioFilterBasedOnTags methods or to SpecValidator
+	filter.ValidateTagExpression(sc.SpecDataTableFilter)
+	if cols, err := sc.SpecDataTableRow.Get(env.GaugeTableTagsColumnName()); err != nil || len(cols) == 0 {
+		return true
+	} else {
+		// TODO(dsalin) move parsing to TableCell new method similar to GetDynamicArgs(), something like GetTypeRepresentation()
+		tags := parser.SplitAndTrimTags(cols[0].GetValue())
+		tagValues := make([]string, 0)
+        for _, tagValue := range tags {
+			if len(tagValue) > 0 {
+				tagValues = append(tagValues, tagValue)
+			}
+		}
+		return filter.NewScenarioFilterBasedOnTags([]string{}, sc.SpecDataTableFilter).FilterTags(tagValues)
+	}
 }
 
 func (e *scenarioExecutor) initScenarioDataStore() *gauge_messages.ProtoExecutionResult {

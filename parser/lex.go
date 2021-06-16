@@ -18,20 +18,21 @@ import (
 )
 
 const (
-	initial             = 1 << iota
-	specScope           = 1 << iota
-	scenarioScope       = 1 << iota
-	commentScope        = 1 << iota
-	tableScope          = 1 << iota
-	tableSeparatorScope = 1 << iota
-	tableDataScope      = 1 << iota
-	stepScope           = 1 << iota
-	contextScope        = 1 << iota
-	tearDownScope       = 1 << iota
-	conceptScope        = 1 << iota
-	keywordScope        = 1 << iota
-	tagsScope           = 1 << iota
-	newLineScope        = 1 << iota
+	initial              = 1 << iota
+	specScope            = 1 << iota
+	scenarioScope        = 1 << iota
+	commentScope         = 1 << iota
+	tableScope           = 1 << iota
+	tableSeparatorScope  = 1 << iota
+	tableDataScope       = 1 << iota
+	stepScope            = 1 << iota
+	contextScope         = 1 << iota
+	tearDownScope        = 1 << iota
+	conceptScope         = 1 << iota
+	keywordScope         = 1 << iota
+	tagsScope            = 1 << iota
+	dataTableFilterScope = 1 << iota
+	newLineScope         = 1 << iota
 )
 
 // Token defines the type of entity identified by the lexer
@@ -51,13 +52,14 @@ func (t *Token) LineText() string {
 func (parser *SpecParser) initialize() {
 	parser.processors = make(map[gauge.TokenKind]func(*SpecParser, *Token) ([]error, bool))
 	parser.processors[gauge.SpecKind] = processSpec
+	parser.processors[gauge.TagKind] = processTag
 	parser.processors[gauge.ScenarioKind] = processScenario
 	parser.processors[gauge.CommentKind] = processComment
 	parser.processors[gauge.StepKind] = processStep
-	parser.processors[gauge.TagKind] = processTag
 	parser.processors[gauge.TableHeader] = processTable
 	parser.processors[gauge.TableRow] = processTable
 	parser.processors[gauge.DataTableKind] = processDataTable
+	parser.processors[gauge.DataTableFilterKind] = processDataTableFilter
 	parser.processors[gauge.TearDownKind] = processTearDown
 }
 
@@ -116,6 +118,8 @@ func (parser *SpecParser) GenerateTokens(specText, fileName string) ([]*Token, [
 				parser.clearState()
 			}
 			newToken = &Token{Kind: gauge.TagKind, LineNo: parser.lineNo, Lines: []string{line}, Value: strings.TrimSpace(trimmedLine[startIndex:]), SpanEnd: parser.lineNo}
+		} else if found, startIndex := parser.checkDataTableFilter(trimmedLine); found {
+			newToken = &Token{Kind: gauge.DataTableFilterKind, LineNo: parser.lineNo, Lines: []string{line}, Value: strings.TrimSpace(trimmedLine[startIndex:]), SpanEnd: parser.lineNo}
 		} else if parser.isTableRow(trimmedLine) {
 			kind := parser.tokenKindBasedOnCurrentState(tableScope, gauge.TableRow, gauge.TableHeader)
 			newToken = &Token{Kind: kind, LineNo: parser.lineNo, Lines: []string{line}, Value: strings.TrimSpace(trimmedLine), SpanEnd: parser.lineNo}
@@ -156,6 +160,18 @@ func (parser *SpecParser) checkTag(text string) (bool, int) {
 		return true, len(tagColon)
 	} else if tagStartIndex := strings.Index(lowerCased(text), tagSpaceColon); tagStartIndex == 0 {
 		return true, len(tagSpaceColon)
+	}
+	return false, -1
+}
+
+func (parser *SpecParser) checkDataTableFilter(text string) (bool, int) {
+	lowerCased := strings.ToLower
+	filterColon := "spec_table_filter:"
+	filterSpaceColon := "spec_table_filter :"
+	if filterStartIndex := strings.Index(lowerCased(text), filterColon); filterStartIndex == 0 {
+		return true, len(filterColon)
+	} else if filterStartIndex := strings.Index(lowerCased(text), filterSpaceColon); filterStartIndex == 0 {
+		return true, len(filterSpaceColon)
 	}
 	return false, -1
 }

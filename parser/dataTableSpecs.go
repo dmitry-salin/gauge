@@ -82,6 +82,7 @@ func copyScenarios(scenarios []*gauge.Scenario, table gauge.Table, i int, errMap
 			SpecDataTableRow:      table,
 			SpecDataTableRowIndex: i,
 			Tags:                  scn.Tags,
+			SpecDataTableFilter:   scn.SpecDataTableFilter,
 			Comments:              scn.Comments,
 			Span:                  scn.Span,
 		}

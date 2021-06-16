@@ -58,6 +58,21 @@ func (s *MySuite) TestToCheckTagsInScenarioLevel(c *C) {
 	c.Assert(spec.Scenarios[0].Tags.Values()[1], Equals, "tag2")
 }
 
+func (s *MySuite) TestToCheckSpecTableFilterInScenarioLevel(c *C) {
+	tokens := []*Token{
+		{Kind: gauge.SpecKind, Value: "Spec Heading", LineNo: 1},
+		{Kind: gauge.ScenarioKind, Value: "Scenario Heading", LineNo: 2},
+		{Kind: gauge.DataTableFilterKind, Value: "tag1 & tag2", LineNo: 3},
+		{Kind: gauge.StepKind, Value: "my step"},
+	}
+
+	spec, result, err := new(SpecParser).CreateSpecification(tokens, gauge.NewConceptDictionary(), "")
+	c.Assert(err, IsNil)
+	c.Assert(result.Ok, Equals, true)
+
+	c.Assert(spec.Scenarios[0].SpecDataTableFilter, Equals, "tag1 & tag2")
+}
+
 func (s *MySuite) TestParsingConceptInSpec(c *C) {
 	parser := new(SpecParser)
 	specText := newSpecBuilder().specHeading("A spec heading").
@@ -111,7 +126,7 @@ func (s *MySuite) TestTableInputFromFileIfPathNotSpecified(c *C) {
 }
 
 func (s *MySuite) TestToSplitTagNames(c *C) {
-	allTags := splitAndTrimTags("tag1 , tag2,   tag3")
+	allTags := SplitAndTrimTags("tag1 , tag2,   tag3")
 	c.Assert(allTags[0], Equals, "tag1")
 	c.Assert(allTags[1], Equals, "tag2")
 	c.Assert(allTags[2], Equals, "tag3")
@@ -1267,6 +1282,26 @@ tags: blah
 	c.Assert(spec.Scenarios[0].Tags.Values()[1], Equals, "bar")
 	c.Assert(len(spec.Tags.Values()), Equals, 1)
 	c.Assert(spec.Tags.Values()[0], Equals, "tag1")
+}
+
+func (s *MySuite) TestScenarioWithRepeatedDataTableFilterDefinitions(c *C) {
+	p := new(SpecParser)
+	spec, parseRes, err := p.Parse(`Spec Heading
+==============
+
+* step
+
+Scenario
+--------
+spec_table_filter: tag1 && tag2
+* step
+spec_table_filter: tag1 && tag2
+	`, gauge.NewConceptDictionary(), "")
+	c.Assert(err, IsNil)
+	c.Assert(len(parseRes.ParseErrors), Equals, 1)
+	c.Assert(parseRes.ParseErrors[0].Message, Equals, "Spec data table filter can be defined only once per scenario")
+
+	c.Assert(spec.Scenarios[0].SpecDataTableFilter, Equals, "tag1 && tag2")
 }
 
 func (s *MySuite) TestDatatTableWithEmptyHeaders(c *C) {

@@ -32,6 +32,9 @@ gauge_specs_dir = specs
 # The default delimiter used read csv files.
 csv_delimiter = ,
 
+# The default name of the specification data table column that stores the tag expression used to filter scenarios.
+gauge_table_tags_column_name = tags
+
 # Allows steps to be written in multiline
 allow_multiline_step = false
 `

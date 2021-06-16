@@ -37,7 +37,9 @@ const (
 	ScreenshotOnFailure = "screenshot_on_failure"
 	saveExecutionResult = "save_execution_result"
 	// CsvDelimiter holds delimiter used to parse csv files
-	CsvDelimiter                   = "csv_delimiter"
+	CsvDelimiter = "csv_delimiter"
+	// GaugeTableTagsColumnName holds name of the data table column that stores the tags used to filter table rows
+	gaugeTableTagsColumnName       = "gauge_table_tags_column_name"
 	allowMultilineStep             = "allow_multiline_step"
 	allowScenarioDatatable         = "allow_scenario_datatable"
 	allowFilteredParallelExecution = "allow_filtered_parallel_execution"
@@ -109,6 +111,7 @@ func loadDefaultEnvVars() {
 	addEnvVar(ScreenshotOnFailure, "true")
 	addEnvVar(saveExecutionResult, "false")
 	addEnvVar(CsvDelimiter, ",")
+	addEnvVar(gaugeTableTagsColumnName, "tags")
 	addEnvVar(allowMultilineStep, "false")
 	addEnvVar(allowScenarioDatatable, "false")
 	addEnvVar(allowFilteredParallelExecution, "false")
@@ -308,4 +311,12 @@ var GaugeSpecFileExtensions = func() []string {
 		}
 	}
 	return allowedExts
+}
+
+var GaugeTableTagsColumnName = func() string {
+	if colName, present := os.LookupEnv(gaugeTableTagsColumnName); present {
+        return colName
+	} else {
+		return "tags"
+	}
 }

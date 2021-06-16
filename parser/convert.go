@@ -275,7 +275,7 @@ func (parser *SpecParser) initializeConverters() []func(*Token, *int, *gauge.Spe
 	})
 
 	tagConverter := converterFn(func(token *Token, state *int) bool {
-		return (token.Kind == gauge.TagKind)
+		return token.Kind == gauge.TagKind
 	}, func(token *Token, spec *gauge.Specification, state *int) ParseResult {
 		tags := &gauge.Tags{RawValues: [][]string{token.Args}}
 		if isInState(*state, scenarioScope) {
@@ -283,7 +283,7 @@ func (parser *SpecParser) initializeConverters() []func(*Token, *int, *gauge.Spe
 				spec.LatestScenario().Tags.Add(tags.RawValues[0])
 			} else {
 				if spec.LatestScenario().NTags() != 0 {
-					return ParseResult{Ok: false, ParseErrors: []ParseError{ParseError{FileName: spec.FileName, LineNo: token.LineNo, Message: "Tags can be defined only once per scenario", LineText: token.LineText()}}}
+					return ParseResult{Ok: false, ParseErrors: []ParseError{{FileName: spec.FileName, LineNo: token.LineNo, Message: "Tags can be defined only once per scenario", LineText: token.LineText()}}}
 				}
 				spec.LatestScenario().AddTags(tags)
 			}
@@ -292,7 +292,7 @@ func (parser *SpecParser) initializeConverters() []func(*Token, *int, *gauge.Spe
 				spec.Tags.Add(tags.RawValues[0])
 			} else {
 				if spec.NTags() != 0 {
-					return ParseResult{Ok: false, ParseErrors: []ParseError{ParseError{FileName: spec.FileName, LineNo: token.LineNo, Message: "Tags can be defined only once per specification", LineText: token.LineText()}}}
+					return ParseResult{Ok: false, ParseErrors: []ParseError{{FileName: spec.FileName, LineNo: token.LineNo, Message: "Tags can be defined only once per specification", LineText: token.LineText()}}}
 				}
 				spec.AddTags(tags)
 			}
@@ -301,8 +301,22 @@ func (parser *SpecParser) initializeConverters() []func(*Token, *int, *gauge.Spe
 		return ParseResult{Ok: true}
 	})
 
+	dataTableFilterConverter := converterFn(func(token *Token, state *int) bool {
+		return token.Kind == gauge.DataTableFilterKind
+	}, func(token *Token, spec *gauge.Specification, state *int) ParseResult {
+		if isInState(*state, scenarioScope) {
+			if len(spec.LatestScenario().SpecDataTableFilter) > 0 {
+				return ParseResult{Ok: false, ParseErrors: []ParseError{{FileName: spec.FileName, LineNo: token.LineNo, Message: "Spec data table filter can be defined only once per scenario", LineText: token.LineText()}}}
+			}
+            spec.LatestScenario().SpecDataTableFilter = token.Value
+		} else {
+			return ParseResult{Ok: false, ParseErrors: []ParseError{{FileName: spec.FileName, LineNo: token.LineNo, Message: "Spec data table filter can be defined only once per scenario", LineText: token.LineText()}}}
+		}
+		return ParseResult{Ok: true}
+	})
+
 	converter := []func(*Token, *int, *gauge.Specification) ParseResult{
-		specConverter, scenarioConverter, stepConverter, contextConverter, commentConverter, tableHeaderConverter, tableRowConverter, tagConverter, keywordConverter, tearDownConverter, tearDownStepConverter,
+		specConverter, scenarioConverter, stepConverter, contextConverter, commentConverter, tableHeaderConverter, tableRowConverter, tagConverter, dataTableFilterConverter, keywordConverter, tearDownConverter, tearDownStepConverter,
 	}
 
 	return converter

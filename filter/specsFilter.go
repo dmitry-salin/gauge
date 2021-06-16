@@ -46,7 +46,7 @@ func (tagsFilter *tagsFilter) filter(specs []*gauge.Specification) []*gauge.Spec
 func filterByTags(tagExpression string, specs []*gauge.Specification) ([]*gauge.Specification, []*gauge.Specification) {
 	if tagExpression != "" {
 		logger.Debugf(true, "Applying tags filter: %s", tagExpression)
-		validateTagExpression(tagExpression)
+		ValidateTagExpression(tagExpression)
 		return filterSpecsByTags(specs, tagExpression)
 	}
 	return specs, specs

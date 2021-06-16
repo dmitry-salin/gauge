@@ -25,7 +25,7 @@ type scenarioFilterBasedOnSpan struct {
 	lineNumbers []int
 }
 type ScenarioFilterBasedOnTags struct {
-	specTags      []string
+	tags          []string
 	tagExpression string
 }
 
@@ -46,16 +46,16 @@ func (filter *scenarioFilterBasedOnSpan) Filter(item gauge.Item) bool {
 	return true
 }
 
-func NewScenarioFilterBasedOnTags(specTags []string, tagExp string) *ScenarioFilterBasedOnTags {
-	return &ScenarioFilterBasedOnTags{specTags, tagExp}
+func NewScenarioFilterBasedOnTags(tagValues []string, tagExp string) *ScenarioFilterBasedOnTags {
+	return &ScenarioFilterBasedOnTags{tagValues, tagExp}
 }
 
 func (filter *ScenarioFilterBasedOnTags) Filter(item gauge.Item) bool {
 	tags := item.(*gauge.Scenario).Tags
 	if tags == nil {
-		return !filter.filterTags(filter.specTags)
+		return !filter.FilterTags(filter.tags)
 	}
-	return !filter.filterTags(append(tags.Values(), filter.specTags...))
+	return !filter.FilterTags(append(tags.Values(), filter.tags...))
 }
 
 func newScenarioFilterBasedOnName(scenariosName []string) *scenarioFilterBasedOnName {
@@ -73,7 +73,7 @@ func sanitize(tag string) string {
 	return tag
 }
 
-func (filter *ScenarioFilterBasedOnTags) filterTags(stags []string) bool {
+func (filter *ScenarioFilterBasedOnTags) FilterTags(stags []string) bool {
 	tagsMap := make(map[string]bool)
 	for _, tag := range stags {
 		tag = sanitize(tag)
@@ -206,7 +206,7 @@ func filterSpecsByTags(specs []*gauge.Specification, tagExpression string) ([]*g
 	return filteredSpecs, otherSpecs
 }
 
-func validateTagExpression(tagExpression string) {
+func ValidateTagExpression(tagExpression string) {
 	filter := &ScenarioFilterBasedOnTags{tagExpression: tagExpression}
 	filter.replaceSpecialChar()
 	_, err := filter.formatAndEvaluateExpression(make(map[string]bool), func(a map[string]bool, b string) bool { return true })

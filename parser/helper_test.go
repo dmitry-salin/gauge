@@ -63,6 +63,12 @@ func (specBuilder *specBuilder) tags(tags ...string) *specBuilder {
 	return specBuilder
 }
 
+func (specBuilder *specBuilder) specTableFilter(expr string) *specBuilder {
+	line := specBuilder.addPrefix("spec_table_filter: ", expr)
+	specBuilder.lines = append(specBuilder.lines, line)
+	return specBuilder
+}
+
 func (specBuilder *specBuilder) tableHeader(cells ...string) *specBuilder {
 	return specBuilder.tableRow(cells...)
 }

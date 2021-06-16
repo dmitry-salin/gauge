@@ -36,6 +36,7 @@ func (s *MySuite) TestLoadDefaultEnv(c *C) {
 	c.Assert(os.Getenv("logs_directory"), Equals, "logs")
 	c.Assert(os.Getenv("gauge_specs_dir"), Equals, "specs")
 	c.Assert(os.Getenv("csv_delimiter"), Equals, ",")
+	c.Assert(os.Getenv("gauge_table_tags_column_name"), Equals, "tags")
 	defaultScreenshotDir := filepath.Join(config.ProjectRoot, common.DotGauge, "screenshots")
 	c.Assert(os.Getenv("gauge_screenshots_dir"), Equals, defaultScreenshotDir)
 	c.Assert(os.Getenv("gauge_spec_file_extensions"), Equals, ".spec, .md")
@@ -298,6 +299,23 @@ func (s *MySuite) TestGetSpecFileExtensionsSetViaEnv(c *C) {
 	for _, expected := range []string{".foo", ".bar"} {
 		c.Assert(contains(exts, expected), Equals, true)
 	}
+}
+
+func (s *MySuite) TestGaugeTableTagsColumnName(c *C) {
+	os.Clearenv()
+	os.Setenv(gaugeTableTagsColumnName, "tags column")
+
+	colName := GaugeTableTagsColumnName()
+	c.Assert(colName, Equals, "tags column")
+
+	os.Clearenv()
+	colName = GaugeTableTagsColumnName()
+	c.Assert(colName, Equals, "tags")
+
+	os.Clearenv()
+	os.Setenv(gaugeTableTagsColumnName, "")
+	colName = GaugeTableTagsColumnName()
+	c.Assert(colName, Equals, "")
 }
 
 func (s *MySuite) TestShouldNotGetDefaultExtensionsWhenEnvIsSet(c *C) {

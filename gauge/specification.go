@@ -30,6 +30,7 @@ const (
 	HeadingKind
 	TableKind
 	DataTableKind
+	DataTableFilterKind
 	TearDownKind
 )
 

@@ -15,6 +15,7 @@ type Scenario struct {
 	Steps                     []*Step
 	Comments                  []*Comment
 	Tags                      *Tags
+	SpecDataTableFilter       string
 	Items                     []Item
 	DataTable                 DataTable
 	SpecDataTableRow          Table

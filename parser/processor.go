@@ -52,13 +52,19 @@ func processTag(parser *SpecParser, token *Token) ([]error, bool) {
 	} else {
 		parser.clearState()
 	}
-	tokens := splitAndTrimTags(token.Value)
+	// TODO(dsalin) move to gauge package, maybe create ReadTags()
+	tokens := SplitAndTrimTags(token.Value)
 
 	for _, tagValue := range tokens {
 		if len(tagValue) > 0 {
 			token.Args = append(token.Args, tagValue)
 		}
 	}
+	return []error{}, false
+}
+
+func processDataTableFilter(parser *SpecParser, token *Token) ([]error, bool) {
+	parser.clearState()
 	return []error{}, false
 }
 
@@ -110,7 +116,7 @@ func processTable(parser *SpecParser, token *Token) ([]error, bool) {
 	return errs, false
 }
 
-func splitAndTrimTags(tag string) []string {
+func SplitAndTrimTags(tag string) []string {
 	listOfTags := strings.Split(tag, ",")
 	for i, aTag := range listOfTags {
 		listOfTags[i] = strings.TrimSpace(aTag)

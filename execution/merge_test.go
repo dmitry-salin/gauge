@@ -55,18 +55,26 @@ func TestAggregateDataTableScnStats(t *testing.T) {
 				SkipErrors:      []string{"--table-rows"},
 			}},
 		},
-		"heading2": {{Scenario: &gm.ProtoScenario{
+		"heading2": {
+			{Scenario: &gm.ProtoScenario{ExecutionStatus: gm.ExecutionStatus_PASSED}},
+			{Scenario: &gm.ProtoScenario{ExecutionStatus: gm.ExecutionStatus_FAILED}},
+			{Scenario: &gm.ProtoScenario{
+				ExecutionStatus: gm.ExecutionStatus_SKIPPED,
+				SkipErrors:      []string{"spec_table_filter"},
+			}},
+		},
+		"heading3": {{Scenario: &gm.ProtoScenario{
 			ExecutionStatus: gm.ExecutionStatus_SKIPPED,
 			SkipErrors:      []string{""},
 		}}},
-		"heading3": {{Scenario: &gm.ProtoScenario{ExecutionStatus: gm.ExecutionStatus_PASSED}}},
-		"heading4": {{Scenario: &gm.ProtoScenario{ExecutionStatus: gm.ExecutionStatus_FAILED}}},
+		"heading4": {{Scenario: &gm.ProtoScenario{ExecutionStatus: gm.ExecutionStatus_PASSED}}},
+		"heading5": {{Scenario: &gm.ProtoScenario{ExecutionStatus: gm.ExecutionStatus_FAILED}}},
 	}
 
 	aggregateDataTableScnStats(scns, res)
 
 	got := stat{failed: res.ScenarioFailedCount, skipped: res.ScenarioSkippedCount, total: res.ScenarioCount}
-	want := stat{failed: 2, skipped: 1, total: 5}
+	want := stat{failed: 3, skipped: 2, total: 8}
 
 	if !reflect.DeepEqual(got, want) {
 		t.Errorf("Aggregate data table scenario stats failed. Want: %v , Got: %v", want, got)
