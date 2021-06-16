@@ -73,7 +73,7 @@ func NewSpecInfoGatherer(conceptDictionary *gauge.ConceptDictionary) *SpecInfoGa
 
 // Init initializes all the SpecInfoGatherer caches
 func (s *SpecInfoGatherer) Init() {
-    // Concepts parsed first because we need to create a concept dictionary that spec parsing can use
+	// Concepts parsed first because we need to create a concept dictionary that spec parsing can use
 	s.initConceptsCache()
 	s.initSpecsCache()
 	s.initStepsCache()

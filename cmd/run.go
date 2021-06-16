@@ -8,19 +8,19 @@ package cmd
 
 import (
 	"fmt"
-	"os"
-	"strconv"
-	"strings"
-	gauge "github.com/getgauge/gauge/gauge"
 	"github.com/getgauge/gauge/config"
 	"github.com/getgauge/gauge/env"
 	"github.com/getgauge/gauge/execution"
 	"github.com/getgauge/gauge/execution/rerun"
+	gauge "github.com/getgauge/gauge/gauge"
 	"github.com/getgauge/gauge/logger"
 	"github.com/getgauge/gauge/plugin/install"
 	"github.com/getgauge/gauge/util"
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
+	"os"
+	"strconv"
+	"strings"
 )
 
 const (

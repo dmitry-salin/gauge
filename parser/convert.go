@@ -308,7 +308,7 @@ func (parser *SpecParser) initializeConverters() []func(*Token, *int, *gauge.Spe
 			if len(spec.LatestScenario().SpecDataTableFilter) > 0 {
 				return ParseResult{Ok: false, ParseErrors: []ParseError{{FileName: spec.FileName, LineNo: token.LineNo, Message: "Spec data table filter can be defined only once per scenario", LineText: token.LineText()}}}
 			}
-            spec.LatestScenario().SpecDataTableFilter = token.Value
+			spec.LatestScenario().SpecDataTableFilter = token.Value
 		} else {
 			return ParseResult{Ok: false, ParseErrors: []ParseError{{FileName: spec.FileName, LineNo: token.LineNo, Message: "Spec data table filter can be defined only once per scenario", LineText: token.LineText()}}}
 		}

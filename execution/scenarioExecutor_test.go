@@ -161,21 +161,21 @@ func TestToEvaluateTableFilter(t *testing.T) {
 	table2 := gauge.NewTable(headers, cols2, 1)
 
 	scenario1 := &gauge.Scenario{
-		Heading: &gauge.Heading{Value: "First Scenario"},
-		Span:    &gauge.Span{Start: 1, End: 3},
-		Tags:    &gauge.Tags{RawValues: [][]string{}},
-		SpecDataTableRow: *table1,
+		Heading:             &gauge.Heading{Value: "First Scenario"},
+		Span:                &gauge.Span{Start: 1, End: 3},
+		Tags:                &gauge.Tags{RawValues: [][]string{}},
+		SpecDataTableRow:    *table1,
 		SpecDataTableFilter: "tag3 & tag2",
 	}
 	scenario2 := &gauge.Scenario{
-		Heading: &gauge.Heading{Value: "Second Scenario"},
-		Span:    &gauge.Span{Start: 4, End: 6},
-		Tags:    &gauge.Tags{RawValues: [][]string{}},
-		SpecDataTableRow: *table2,
+		Heading:             &gauge.Heading{Value: "Second Scenario"},
+		Span:                &gauge.Span{Start: 4, End: 6},
+		Tags:                &gauge.Tags{RawValues: [][]string{}},
+		SpecDataTableRow:    *table2,
 		SpecDataTableFilter: "tag4 & tag5",
 	}
 
-    if !shouldExecuteForSpecDataTable(scenario1) {
+	if !shouldExecuteForSpecDataTable(scenario1) {
 		expr := scenario1.SpecDataTableFilter
 		specDataTags := scenario1.SpecDataTableRow.Rows()[0][1]
 		t.Errorf("Expected that scenario with spec_table_filter: `%s` should excecute for spec table row with tags: `%s`", expr, specDataTags)

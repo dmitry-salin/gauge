@@ -315,7 +315,7 @@ var GaugeSpecFileExtensions = func() []string {
 
 var GaugeTableTagsColumnName = func() string {
 	if colName, present := os.LookupEnv(gaugeTableTagsColumnName); present {
-        return colName
+		return colName
 	} else {
 		return "tags"
 	}

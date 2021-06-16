@@ -442,7 +442,7 @@ func TestMergeResultWithMesages(t *testing.T) {
 			},
 			PreHookMessages:  []string{"Hello"},
 			PostHookMessages: []string{"Bye"},
-			IsTableDriven: false,
+			IsTableDriven:    false,
 		},
 		ScenarioCount: 0, ScenarioSkippedCount: 0, ScenarioFailedCount: 0, IsFailed: false, Skipped: false, ExecutionTime: int64(5),
 	}

@@ -70,7 +70,7 @@ func FormatStep(step *gauge.Step) string {
 		} else {
 			formattedArg = fmt.Sprintf("\"%s\"", parser.GetUnescapedString(argument.Value))
 		}
-		text = strings.Replace(text, stripBeforeArg + gauge.ParameterPlaceholder, formattedArg, 1)
+		text = strings.Replace(text, stripBeforeArg+gauge.ParameterPlaceholder, formattedArg, 1)
 	}
 	stepText := ""
 	if strings.HasSuffix(text, "\n") {

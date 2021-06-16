@@ -44,7 +44,7 @@ func main() {
 	}
 	texts := indentText(mdPath)
 	for _, t := range texts {
-        name := strings.TrimSuffix(t.name, filepath.Ext(t.name)) + ".html"
+		name := strings.TrimSuffix(t.name, filepath.Ext(t.name)) + ".html"
 		output := strings.Replace(html, "<!--CONTENT-->", string(blackfriday.Run([]byte(t.content))), -1)
 		p := filepath.Join(htmlPath, name)
 		err := ioutil.WriteFile(p, []byte(output), 0644)

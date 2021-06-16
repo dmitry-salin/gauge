@@ -63,7 +63,7 @@ func (e *scenarioExecutor) execute(i gauge.Item, r result.Result) {
 		return
 	}
 	if !shouldExecuteForSpecDataTable(scenario) {
-        e.errMap.ScenarioErrs[scenario] = append([]error{errors.New("skipped Reason: Doesn't satisfy tags expr from spec_table_filter")}, e.errMap.ScenarioErrs[scenario]...)
+		e.errMap.ScenarioErrs[scenario] = append([]error{errors.New("skipped Reason: Doesn't satisfy tags expr from spec_table_filter")}, e.errMap.ScenarioErrs[scenario]...)
 		setSkipInfoInResult(scenarioResult, scenario, e.errMap)
 		return
 	}
@@ -111,7 +111,7 @@ func shouldExecuteForSpecDataTable(sc *gauge.Scenario) bool {
 		// TODO(dsalin) move parsing to TableCell new method similar to GetDynamicArgs(), something like GetTypeRepresentation()
 		tags := parser.SplitAndTrimTags(cols[0].GetValue())
 		tagValues := make([]string, 0)
-        for _, tagValue := range tags {
+		for _, tagValue := range tags {
 			if len(tagValue) > 0 {
 				tagValues = append(tagValues, tagValue)
 			}
