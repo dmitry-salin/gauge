@@ -235,6 +235,7 @@ func convertToProtoSpecResult(specResult *result.SpecResult) *gauge_messages.Pro
 		ExecutionTime:        specResult.ExecutionTime,
 		Skipped:              specResult.Skipped,
 		ScenarioSkippedCount: int32(specResult.ScenarioSkippedCount),
+		SkippedDataTableRows: specResult.SkippedDataTableRows,
 		Errors:               specResult.Errors,
 		Timestamp:            time.Now().Format(time.RFC3339),
 	}
@@ -282,8 +283,9 @@ func newProtoSpec(specification *Specification) *gauge_messages.ProtoSpec {
 
 func NewSpecResult(specification *Specification) *result.SpecResult {
 	return &result.SpecResult{
-		ProtoSpec:           newProtoSpec(specification),
-		FailedDataTableRows: make([]int32, 0),
+		ProtoSpec:            newProtoSpec(specification),
+		FailedDataTableRows:  make([]int32, 0),
+		SkippedDataTableRows: make([]int32, 0),
 	}
 }
 

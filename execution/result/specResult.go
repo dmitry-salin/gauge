@@ -17,6 +17,7 @@ type SpecResult struct {
 	ScenarioCount        int
 	IsFailed             bool
 	FailedDataTableRows  []int32
+	SkippedDataTableRows []int32
 	ExecutionTime        int64
 	Skipped              bool
 	ScenarioSkippedCount int
@@ -68,6 +69,9 @@ func (specResult *SpecResult) AddScenarioResults(scenarioResults []*ScenarioResu
 			}
 		} else if scenarioResult.GetSkipped() {
 			specResult.ScenarioSkippedCount++
+			if isScenarioTableRelated {
+				specResult.SkippedDataTableRows = append(specResult.SkippedDataTableRows, int32(scenarioResult.SpecDataTableRowIndex))
+			}
 		}
 		specResult.ProtoSpec.Items = append(specResult.ProtoSpec.Items, item)
 	}
