@@ -120,7 +120,7 @@ func init() {
 	f.BoolVarP(&verbose, verboseName, "v", verboseDefault, "Enable step level reporting on console, default being scenario level")
 	f.BoolVarP(&simpleConsole, simpleConsoleName, "", simpleConsoleDefault, "Removes colouring and simplifies the console output")
 	f.StringVarP(&environment, environmentName, "e", environmentDefault, "Specifies the environment to use")
-	f.StringVarP(&tags, tagsName, "t", tagsDefault, "Executes the specs and scenarios tagged with given tags")
+	f.StringVarP(&tags, tagsName, "t", tagsDefault, "Executes the specs and scenarios tagged with given tags, filter tables using them")
 	f.StringVarP(&rows, rowsName, "r", rowsDefault, "Executes the specs and scenarios only for the selected rows. It can be specified by range as 2-4 or as list 2,4")
 	f.BoolVarP(&parallel, parallelName, "p", parallelDefault, "Execute specs in parallel")
 	f.IntVarP(&streams, streamsName, "n", streamsDefault, "Specify number of parallel execution streams")

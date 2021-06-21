@@ -6,7 +6,11 @@
 
 package gauge
 
-import "fmt"
+import (
+	"fmt"
+
+	"github.com/getgauge/gauge/env"
+)
 
 type Table struct {
 	headerIndexMap map[string]int
@@ -78,6 +82,18 @@ func (table *Table) Get(header string) ([]TableCell, error) {
 		return nil, fmt.Errorf("Table column %s not found", header)
 	}
 	return table.Columns[table.headerIndexMap[header]], nil
+}
+
+func (table *Table) GetTags() ([][]string, error) {
+	tagsColumnName := env.GaugeTableTagsColumnName()
+	if !table.headerExists(tagsColumnName) {
+		return nil, fmt.Errorf("table tags column `%s` not found", tagsColumnName)
+	}
+	tags := [][]string{}
+	for _, cell := range table.Columns[table.headerIndexMap[tagsColumnName]] {
+		tags = append(tags, SplitAndTrimTags(cell.GetValue()))
+	}
+	return tags, nil
 }
 
 func (table *Table) headerExists(header string) bool {

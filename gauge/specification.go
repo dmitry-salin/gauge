@@ -7,7 +7,10 @@
 package gauge
 
 import (
+	"os"
 	"reflect"
+
+	"github.com/getgauge/gauge/env"
 )
 
 type HeadingType int
@@ -22,6 +25,7 @@ type TokenKind int
 const (
 	SpecKind TokenKind = iota
 	TagKind
+	FilterKind
 	ScenarioKind
 	CommentKind
 	StepKind
@@ -30,20 +34,20 @@ const (
 	HeadingKind
 	TableKind
 	DataTableKind
-	DataTableFilterKind
 	TearDownKind
 )
 
 type Specification struct {
-	Heading       *Heading
-	Scenarios     []*Scenario
-	Comments      []*Comment
-	DataTable     DataTable
-	Contexts      []*Step
-	FileName      string
-	Tags          *Tags
-	Items         []Item
-	TearDownSteps []*Step
+	Heading          *Heading
+	Scenarios        []*Scenario
+	Comments         []*Comment
+	DataTable        DataTable
+	Contexts         []*Step
+	FileName         string
+	Tags             *Tags
+	FilterExpression string
+	Items            []Item
+	TearDownSteps    []*Step
 }
 
 type Item interface {
@@ -248,6 +252,19 @@ func (spec *Specification) GetSpecItems() []Item {
 	return specItems
 }
 
+func (spec *Specification) GetTags() []string {
+	tags := SplitAndTrimTags(os.Getenv(env.GaugeSuiteTags))
+	if spec.Tags != nil {
+		tags = append(tags, spec.Tags.Values()...)
+	}
+	if spec.DataTable.Table.IsInitialized() {
+		if tableTags, err := spec.DataTable.Table.GetTags(); err == nil && len(tableTags) == 1 {
+			tags = append(tags, tableTags[0]...)
+		}
+	}
+	return tags
+}
+
 func (spec *Specification) Traverse(processor ItemProcessor, queue *ItemQueue) {
 	processor.Specification(spec)
 	processor.Heading(spec.Heading)
@@ -313,6 +330,46 @@ func (spec *Specification) Filter(filter SpecItemFilter) (*Specification, *Speci
 	return specWithFilteredItems, specWithOtherItems
 }
 
+func (spec *Specification) SetTableIndex(specsMap map[string]int) {
+	var newSpecIdx int
+	if idx, ok := specsMap[spec.FileName]; ok {
+		newSpecIdx = idx + 1
+	} else {
+		newSpecIdx = 0
+	}
+	tableRelatedScenarioFound := false
+	scnsMap := make(map[string]int)
+	for _, item := range spec.Items {
+		if item.Kind() == ScenarioKind {
+			scnItem := item.(*Scenario)
+			index := getIndexFor(scnItem, spec.Scenarios)
+			scn := spec.Scenarios[index]
+			if scnItem.ScenarioDataTableRow.IsInitialized() {
+				var newScenarioIdx int
+				if idx, ok := scnsMap[scnItem.GetName()]; ok {
+					newScenarioIdx = idx + 1
+				} else {
+					newScenarioIdx = 0
+				}
+				scnsMap[scnItem.GetName()] = newScenarioIdx
+				scnItem.ScenarioDataTableRowIndex = newScenarioIdx
+				scn.ScenarioDataTableRowIndex = newScenarioIdx
+			}
+			if spec.DataTable.IsInitialized() && spec.DataTable.Table.GetRowCount() == 1 {
+				specUsesTableDataInContextTeardown := spec.UsesArgsInContextTeardown(spec.DataTable.Table.Headers...)
+				if scnItem.SpecDataTableRow.IsInitialized() || specUsesTableDataInContextTeardown {
+					tableRelatedScenarioFound = true
+					scnItem.SpecDataTableRowIndex = newSpecIdx
+					scn.SpecDataTableRowIndex = newSpecIdx
+				}
+			}
+		}
+	}
+	if tableRelatedScenarioFound {
+		specsMap[spec.FileName] = newSpecIdx
+	}
+}
+
 func getIndexFor(scenario *Scenario, scenarios []*Scenario) int {
 	for index, anItem := range scenarios {
 		if reflect.DeepEqual(scenario, anItem) {
@@ -349,22 +406,4 @@ type TearDown struct {
 
 func (t *TearDown) Kind() TokenKind {
 	return TearDownKind
-}
-
-type Tags struct {
-	RawValues [][]string
-}
-
-func (tags *Tags) Add(values []string) {
-	tags.RawValues = append(tags.RawValues, values)
-}
-
-func (tags *Tags) Values() (val []string) {
-	for i := range tags.RawValues {
-		val = append(val, tags.RawValues[i]...)
-	}
-	return val
-}
-func (tags *Tags) Kind() TokenKind {
-	return TagKind
 }

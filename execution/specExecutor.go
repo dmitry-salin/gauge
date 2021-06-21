@@ -43,7 +43,7 @@ func newSpecExecutor(s *gauge.Specification, d *gauge.DataTable, r runner.Runner
 			Name:     s.Heading.Value,
 			FileName: s.FileName,
 			IsFailed: false,
-			Tags:     getTagValue(s.Tags)},
+			Tags:     s.GetTags()},
 		ProjectName:              filepath.Base(config.ProjectRoot),
 		NumberOfExecutionStreams: int32(NumberOfExecutionStreams),
 		RunnerId:                 int32(stream),
@@ -261,21 +261,14 @@ func (e *specExecutor) executeScenario(scenario *gauge.Scenario) (*result.Scenar
 	shouldRetry := RetryOnlyTags == ""
 
 	if !shouldRetry {
-		spec := e.specification
-		tagValues := make([]string, 0)
-		if spec.Tags != nil {
-			tagValues = spec.Tags.Values()
-		}
-
-		specFilter := filter.NewScenarioFilterBasedOnTags(tagValues, RetryOnlyTags)
-
+		specFilter := filter.NewScenarioFilterBasedOnTags(e.specification, RetryOnlyTags)
 		shouldRetry = !(specFilter.Filter(scenario))
 	}
 	retriesCount := 0
 	for i := 0; i < MaxRetriesCount; i++ {
 		e.currentExecutionInfo.CurrentScenario = &gauge_messages.ScenarioInfo{
 			Name:     scenario.Heading.Value,
-			Tags:     getTagValue(scenario.Tags),
+			Tags:     scenario.GetTags(),
 			IsFailed: false,
 		}
 
@@ -328,14 +321,6 @@ func (e *specExecutor) addAllItemsForScenarioExecution(scenario *gauge.Scenario,
 	}
 	scenarioResult.AddItems(items)
 	return nil
-}
-
-func getTagValue(tags *gauge.Tags) []string {
-	var tagValues []string
-	if tags != nil {
-		tagValues = append(tagValues, tags.Values()...)
-	}
-	return tagValues
 }
 
 func setSpecFailure(executionInfo *gauge_messages.ExecutionInfo) {

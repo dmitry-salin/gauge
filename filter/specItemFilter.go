@@ -7,7 +7,6 @@
 package filter
 
 import (
-	"errors"
 	"go/constant"
 	"go/token"
 	"go/types"
@@ -24,9 +23,12 @@ import (
 type scenarioFilterBasedOnSpan struct {
 	lineNumbers []int
 }
+
 type ScenarioFilterBasedOnTags struct {
-	tags          []string
-	tagExpression string
+	specTags       []string
+	specExpression string
+	expression     string
+	expressionText string
 }
 
 type scenarioFilterBasedOnName struct {
@@ -46,16 +48,28 @@ func (filter *scenarioFilterBasedOnSpan) Filter(item gauge.Item) bool {
 	return true
 }
 
-func NewScenarioFilterBasedOnTags(tagValues []string, tagExp string) *ScenarioFilterBasedOnTags {
-	return &ScenarioFilterBasedOnTags{tagValues, tagExp}
+func NewScenarioFilterBasedOnTags(spec *gauge.Specification, tagExp string) *ScenarioFilterBasedOnTags {
+	specTags := []string{}
+	specFilter := ""
+	if spec != nil {
+		specTags = spec.GetTags()
+		specFilter = spec.FilterExpression
+	}
+	return &ScenarioFilterBasedOnTags{specTags: specTags, specExpression: specFilter, expression: tagExp}
 }
 
 func (filter *ScenarioFilterBasedOnTags) Filter(item gauge.Item) bool {
-	tags := item.(*gauge.Scenario).Tags
-	if tags == nil {
-		return !filter.FilterTags(filter.tags)
+	sc := item.(*gauge.Scenario)
+	tagValues := filter.specTags
+	tagValues = append(tagValues, sc.GetTags()...)
+	filters := []*ScenarioFilterBasedOnTags{filter}
+	filters = append(filters, NewScenarioFilterBasedOnTags(nil, filter.specExpression))
+	filters = append(filters, NewScenarioFilterBasedOnTags(nil, sc.FilterExpression))
+	res := true
+	for _, fltr := range filters {
+		res = res && fltr.FilterTags(tagValues)
 	}
-	return !filter.FilterTags(append(tags.Values(), filter.tags...))
+	return !res
 }
 
 func newScenarioFilterBasedOnName(scenariosName []string) *scenarioFilterBasedOnName {
@@ -80,12 +94,20 @@ func (filter *ScenarioFilterBasedOnTags) FilterTags(stags []string) bool {
 		tagsMap[strings.Replace(tag, " ", "", -1)] = true
 	}
 	filter.replaceSpecialChar()
-	value, _ := filter.formatAndEvaluateExpression(tagsMap, filter.isTagPresent)
-	return value
+	if filter.expression == "" {
+		return true
+	} else {
+		value, err := filter.formatAndEvaluateExpression(tagsMap, filter.isTagPresent)
+		if err != nil {
+			logger.Fatalf(true, err.Error())
+		}
+		return value
+	}
 }
 
 func (filter *ScenarioFilterBasedOnTags) replaceSpecialChar() {
-	filter.tagExpression = strings.Replace(strings.Replace(strings.Replace(strings.Replace(filter.tagExpression, " ", "", -1), ",", "&", -1), "&&", "&", -1), "||", "|", -1)
+	filter.expressionText = filter.expression
+	filter.expression = strings.Replace(strings.Replace(strings.Replace(strings.Replace(filter.expression, " ", "", -1), ",", "&", -1), "&&", "&", -1), "||", "|", -1)
 }
 
 func (filter *ScenarioFilterBasedOnTags) formatAndEvaluateExpression(tagsMap map[string]bool, isTagQualified func(tagsMap map[string]bool, tagName string) bool) (bool, error) {
@@ -142,7 +164,7 @@ func (filter *ScenarioFilterBasedOnTags) evaluateExp(tagExpression string) (bool
 
 	val, err := types.Eval(token.NewFileSet(), nil, 0, s)
 	if err != nil {
-		return false, errors.New("Invalid Expression.\n" + err.Error())
+		return false, fmt.Errorf("invalid expression: `%s` \n%s", filter.expressionText, err.Error())
 	}
 	res, _ := constant.Uint64Val(val.Value)
 
@@ -167,7 +189,7 @@ func (filter *ScenarioFilterBasedOnTags) parseTagExpression() (tagExpressionPart
 	var wordValue = func() string {
 		return sanitize(strings.TrimSpace(word))
 	}
-	for _, c := range filter.tagExpression {
+	for _, c := range filter.expression {
 		c1, _ := strconv.Unquote(strconv.QuoteRuneToASCII(c))
 		if isValidOperator(c) {
 			if word != "" {
@@ -187,27 +209,8 @@ func (filter *ScenarioFilterBasedOnTags) parseTagExpression() (tagExpressionPart
 	return
 }
 
-func filterSpecsByTags(specs []*gauge.Specification, tagExpression string) ([]*gauge.Specification, []*gauge.Specification) {
-	filteredSpecs := make([]*gauge.Specification, 0)
-	otherSpecs := make([]*gauge.Specification, 0)
-	for _, spec := range specs {
-		tagValues := make([]string, 0)
-		if spec.Tags != nil {
-			tagValues = spec.Tags.Values()
-		}
-		specWithFilteredItems, specWithOtherItems := spec.Filter(NewScenarioFilterBasedOnTags(tagValues, tagExpression))
-		if len(specWithFilteredItems.Scenarios) != 0 {
-			filteredSpecs = append(filteredSpecs, specWithFilteredItems)
-		}
-		if len(specWithOtherItems.Scenarios) != 0 {
-			otherSpecs = append(otherSpecs, specWithOtherItems)
-		}
-	}
-	return filteredSpecs, otherSpecs
-}
-
 func ValidateTagExpression(tagExpression string) {
-	filter := &ScenarioFilterBasedOnTags{tagExpression: tagExpression}
+	filter := &ScenarioFilterBasedOnTags{expression: tagExpression}
 	filter.replaceSpecialChar()
 	_, err := filter.formatAndEvaluateExpression(make(map[string]bool), func(a map[string]bool, b string) bool { return true })
 	if err != nil {

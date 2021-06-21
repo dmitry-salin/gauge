@@ -149,24 +149,22 @@ func aggregateDataTableScnStats(results map[string][]*m.ProtoTableDrivenScenario
 	for _, dResult := range results {
 		for _, res := range dResult {
 			isTableIndicesExcluded := false
-			// isExcludedByTableFilter := false
+			isExcludedBySkipFilter := false
 			if res.Scenario.ExecutionStatus == m.ExecutionStatus_FAILED {
 				specResult.ScenarioFailedCount++
 			} else if res.Scenario.ExecutionStatus == m.ExecutionStatus_SKIPPED {
 				if strings.Contains(res.Scenario.SkipErrors[0], "--table-rows") {
 					isTableIndicesExcluded = true
 				}
-				/*
-					if strings.Contains(res.Scenario.SkipErrors[0], "spec_table_filter") {
-						isExcludedByTableFilter = true
-					}
-				*/
-				if !isTableIndicesExcluded /* && !isExcludedByTableFilter */ {
+				if strings.Contains(res.Scenario.SkipErrors[0], "skip filter") {
+					isExcludedBySkipFilter = true
+				}
+				if !isTableIndicesExcluded && !isExcludedBySkipFilter {
 					specResult.ScenarioSkippedCount++
 					specResult.Skipped = true
 				}
 			}
-			if !isTableIndicesExcluded /* && !isExcludedByTableFilter */ {
+			if !isTableIndicesExcluded && !isExcludedBySkipFilter {
 				specResult.ScenarioCount++
 			}
 		}

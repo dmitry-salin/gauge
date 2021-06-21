@@ -224,6 +224,22 @@ func (s *MySuite) TestParseSpecTags(c *C) {
 	c.Assert(tokens[1].Value, Equals, "tag1,tag2")
 }
 
+func (s *MySuite) TestParseSpecTagsBeforeSpecHeading(c *C) {
+	parser := new(SpecParser)
+	specText := newSpecBuilder().tags("tag1 ").specHeading("Spec heading with hash ").String()
+
+	tokens, err := parser.GenerateTokens(specText, "")
+
+	c.Assert(err, IsNil)
+	c.Assert(len(tokens), Equals, 2)
+
+	c.Assert(tokens[0].Kind, Equals, gauge.TagKind)
+	c.Assert(len(tokens[0].Args), Equals, 1)
+	c.Assert(tokens[0].Args[0], Equals, "tag1")
+	c.Assert(tokens[0].LineText(), Equals, "tags: tag1 ")
+	c.Assert(tokens[0].Value, Equals, "tag1")
+}
+
 func (s *MySuite) TestParseSpecTagsWithSpace(c *C) {
 	parser := new(SpecParser)
 	specText := newSpecBuilder().specHeading("Spec heading with hash ").text(" tags :tag1,tag2").scenarioHeading("Scenario Heading").String()
@@ -274,48 +290,6 @@ func (s *MySuite) TestParseScenarioTags(c *C) {
 	c.Assert(tokens[2].Value, Equals, "tag1,tag2")
 }
 
-func (s *MySuite) TestParseScenarioSpecTableFilter(c *C) {
-	parser := new(SpecParser)
-	specText := newSpecBuilder().specHeading("Spec heading with hash ").scenarioHeading("Scenario Heading").specTableFilter("tag1 && tag2").String()
-
-	tokens, err := parser.GenerateTokens(specText, "")
-
-	c.Assert(err, IsNil)
-	c.Assert(len(tokens), Equals, 3)
-
-	c.Assert(tokens[2].Kind, Equals, gauge.DataTableFilterKind)
-	c.Assert(tokens[2].Value, Equals, "tag1 && tag2")
-	c.Assert(tokens[2].LineText(), Equals, "spec_table_filter: tag1 && tag2")
-}
-
-func (s *MySuite) TestParseScenarioSpecTableFilterWithSpace(c *C) {
-	parser := new(SpecParser)
-	specText := newSpecBuilder().specHeading("Spec heading with hash ").scenarioHeading("Scenario Heading").text(" spec_table_filter : tag1 && tag2").String()
-
-	tokens, err := parser.GenerateTokens(specText, "")
-
-	c.Assert(err, IsNil)
-	c.Assert(len(tokens), Equals, 3)
-
-	c.Assert(tokens[2].Kind, Equals, gauge.DataTableFilterKind)
-	c.Assert(tokens[2].Value, Equals, "tag1 && tag2")
-	c.Assert(tokens[2].LineText(), Equals, " spec_table_filter : tag1 && tag2")
-}
-
-func (s *MySuite) TestParseEmptyScenarioSpecTableFilter(c *C) {
-	parser := new(SpecParser)
-	specText := newSpecBuilder().specHeading("Spec heading with hash ").scenarioHeading("Scenario Heading").specTableFilter("").String()
-
-	tokens, err := parser.GenerateTokens(specText, "")
-
-	c.Assert(err, IsNil)
-	c.Assert(len(tokens), Equals, 3)
-
-	c.Assert(tokens[2].Kind, Equals, gauge.DataTableFilterKind)
-	c.Assert(tokens[2].Value, Equals, "")
-	c.Assert(tokens[2].LineText(), Equals, "spec_table_filter: ")
-}
-
 func (s *MySuite) TestParseScenarioWithTagsInMultipleLines(c *C) {
 	parser := new(SpecParser)
 	specText := newSpecBuilder().specHeading("Spec heading with hash ").scenarioHeading("Scenario Heading").tags("tag1", "\ntag2").String()
@@ -335,20 +309,101 @@ func (s *MySuite) TestParseScenarioWithTagsInMultipleLines(c *C) {
 	c.Assert(tokens[3].Value, Equals, "tag2")
 }
 
-func (s *MySuite) TestParseSpecTagsBeforeSpecHeading(c *C) {
+func (s *MySuite) TestParseSpecFilter(c *C) {
 	parser := new(SpecParser)
-	specText := newSpecBuilder().tags("tag1 ").specHeading("Spec heading with hash ").String()
+	specText := newSpecBuilder().specHeading("Spec heading with hash ").filter("tag1 && tag2").scenarioHeading("Scenario Heading").String()
+
+	tokens, err := parser.GenerateTokens(specText, "")
+
+	c.Assert(err, IsNil)
+	c.Assert(len(tokens), Equals, 3)
+
+	c.Assert(tokens[1].Kind, Equals, gauge.FilterKind)
+	c.Assert(tokens[1].Value, Equals, "tag1 && tag2")
+	c.Assert(tokens[1].LineText(), Equals, "filter: tag1 && tag2")
+}
+
+func (s *MySuite) TestParseSpecFilterBeforeSpecHeading(c *C) {
+	parser := new(SpecParser)
+	specText := newSpecBuilder().filter("tag1 && tag2").specHeading("Spec heading with hash ").String()
 
 	tokens, err := parser.GenerateTokens(specText, "")
 
 	c.Assert(err, IsNil)
 	c.Assert(len(tokens), Equals, 2)
 
-	c.Assert(tokens[0].Kind, Equals, gauge.TagKind)
-	c.Assert(len(tokens[0].Args), Equals, 1)
-	c.Assert(tokens[0].Args[0], Equals, "tag1")
-	c.Assert(tokens[0].LineText(), Equals, "tags: tag1 ")
-	c.Assert(tokens[0].Value, Equals, "tag1")
+	c.Assert(tokens[0].Kind, Equals, gauge.FilterKind)
+	c.Assert(tokens[0].Value, Equals, "tag1 && tag2")
+	c.Assert(tokens[0].LineText(), Equals, "filter: tag1 && tag2")
+}
+
+func (s *MySuite) TestParseSpecFilterWithSpace(c *C) {
+	parser := new(SpecParser)
+	specText := newSpecBuilder().specHeading("Spec heading with hash ").text(" filter : tag1 && tag2").scenarioHeading("Scenario Heading").String()
+
+	tokens, err := parser.GenerateTokens(specText, "")
+
+	c.Assert(err, IsNil)
+	c.Assert(len(tokens), Equals, 3)
+
+	c.Assert(tokens[1].Kind, Equals, gauge.FilterKind)
+	c.Assert(tokens[1].Value, Equals, "tag1 && tag2")
+	c.Assert(tokens[1].LineText(), Equals, " filter : tag1 && tag2")
+}
+
+func (s *MySuite) TestParseEmptyFilter(c *C) {
+	parser := new(SpecParser)
+	specText := newSpecBuilder().specHeading("Spec heading with hash ").filter("").scenarioHeading("Scenario Heading").String()
+	tokens, err := parser.GenerateTokens(specText, "")
+
+	c.Assert(err, IsNil)
+	c.Assert(len(tokens), Equals, 3)
+
+	c.Assert(tokens[1].Kind, Equals, gauge.FilterKind)
+	c.Assert(tokens[1].Value, Equals, "")
+	c.Assert(tokens[1].LineText(), Equals, "filter: ")
+}
+
+func (s *MySuite) TestParseScenarioFilter(c *C) {
+	parser := new(SpecParser)
+	specText := newSpecBuilder().specHeading("Spec heading with hash ").scenarioHeading("Scenario Heading").filter("tag1 && tag2").String()
+
+	tokens, err := parser.GenerateTokens(specText, "")
+
+	c.Assert(err, IsNil)
+	c.Assert(len(tokens), Equals, 3)
+
+	c.Assert(tokens[2].Kind, Equals, gauge.FilterKind)
+	c.Assert(tokens[2].Value, Equals, "tag1 && tag2")
+	c.Assert(tokens[2].LineText(), Equals, "filter: tag1 && tag2")
+}
+
+func (s *MySuite) TestParseScenarioFilterWithSpace(c *C) {
+	parser := new(SpecParser)
+	specText := newSpecBuilder().specHeading("Spec heading with hash ").scenarioHeading("Scenario Heading").text(" filter : tag1 && tag2").String()
+
+	tokens, err := parser.GenerateTokens(specText, "")
+
+	c.Assert(err, IsNil)
+	c.Assert(len(tokens), Equals, 3)
+
+	c.Assert(tokens[2].Kind, Equals, gauge.FilterKind)
+	c.Assert(tokens[2].Value, Equals, "tag1 && tag2")
+	c.Assert(tokens[2].LineText(), Equals, " filter : tag1 && tag2")
+}
+
+func (s *MySuite) TestParseEmptyScenarioFilter(c *C) {
+	parser := new(SpecParser)
+	specText := newSpecBuilder().specHeading("Spec heading with hash ").scenarioHeading("Scenario Heading").filter("").String()
+
+	tokens, err := parser.GenerateTokens(specText, "")
+
+	c.Assert(err, IsNil)
+	c.Assert(len(tokens), Equals, 3)
+
+	c.Assert(tokens[2].Kind, Equals, gauge.FilterKind)
+	c.Assert(tokens[2].Value, Equals, "")
+	c.Assert(tokens[2].LineText(), Equals, "filter: ")
 }
 
 func (s *MySuite) TestParsingSimpleDataTable(c *C) {

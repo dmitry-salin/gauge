@@ -50,7 +50,7 @@ func createSpecsForTableRows(spec *gauge.Specification, scns []*gauge.Scenario, 
 
 func createSpec(scns []*gauge.Scenario, table *gauge.Table, spec *gauge.Specification, errMap *gauge.BuildErrors) *gauge.Specification {
 	dt := &gauge.DataTable{Table: table, Value: spec.DataTable.Value, LineNo: spec.DataTable.LineNo, IsExternal: spec.DataTable.IsExternal}
-	s := &gauge.Specification{DataTable: *dt, FileName: spec.FileName, Heading: spec.Heading, Scenarios: scns, Contexts: spec.Contexts, TearDownSteps: spec.TearDownSteps, Tags: spec.Tags}
+	s := &gauge.Specification{DataTable: *dt, FileName: spec.FileName, Heading: spec.Heading, Scenarios: scns, Contexts: spec.Contexts, TearDownSteps: spec.TearDownSteps, Tags: spec.Tags, FilterExpression: spec.FilterExpression}
 	index := 0
 	for _, item := range spec.Items {
 		if item.Kind() == gauge.DataTableKind {
@@ -76,14 +76,14 @@ func createSpec(scns []*gauge.Scenario, table *gauge.Table, spec *gauge.Specific
 func copyScenarios(scenarios []*gauge.Scenario, table gauge.Table, i int, errMap *gauge.BuildErrors) (scns []*gauge.Scenario) {
 	var create = func(scn *gauge.Scenario, scnTableRow gauge.Table, scnTableRowIndex int) *gauge.Scenario {
 		newScn := &gauge.Scenario{
-			Steps:                 scn.Steps,
-			Items:                 scn.Items,
 			Heading:               scn.Heading,
+			Steps:                 scn.Steps,
+			Comments:              scn.Comments,
+			Tags:                  scn.Tags,
+			FilterExpression:      scn.FilterExpression,
+			Items:                 scn.Items,
 			SpecDataTableRow:      table,
 			SpecDataTableRowIndex: i,
-			Tags:                  scn.Tags,
-			SpecDataTableFilter:   scn.SpecDataTableFilter,
-			Comments:              scn.Comments,
 			Span:                  scn.Span,
 		}
 		if scnTableRow.IsInitialized() {

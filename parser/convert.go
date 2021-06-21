@@ -301,22 +301,25 @@ func (parser *SpecParser) initializeConverters() []func(*Token, *int, *gauge.Spe
 		return ParseResult{Ok: true}
 	})
 
-	dataTableFilterConverter := converterFn(func(token *Token, state *int) bool {
-		return token.Kind == gauge.DataTableFilterKind
+	filterConverter := converterFn(func(token *Token, state *int) bool {
+		return token.Kind == gauge.FilterKind
 	}, func(token *Token, spec *gauge.Specification, state *int) ParseResult {
 		if isInState(*state, scenarioScope) {
-			if len(spec.LatestScenario().SpecDataTableFilter) > 0 {
-				return ParseResult{Ok: false, ParseErrors: []ParseError{{FileName: spec.FileName, LineNo: token.LineNo, Message: "Spec data table filter can be defined only once per scenario", LineText: token.LineText()}}}
+			if len(spec.LatestScenario().FilterExpression) > 0 {
+				return ParseResult{Ok: false, ParseErrors: []ParseError{{FileName: spec.FileName, LineNo: token.LineNo, Message: "filter can be defined only once per scenario", LineText: token.LineText()}}}
 			}
-			spec.LatestScenario().SpecDataTableFilter = token.Value
+			spec.LatestScenario().FilterExpression = token.Value
 		} else {
-			return ParseResult{Ok: false, ParseErrors: []ParseError{{FileName: spec.FileName, LineNo: token.LineNo, Message: "Spec data table filter can be defined only once per scenario", LineText: token.LineText()}}}
+			if len(spec.FilterExpression) > 0 {
+				return ParseResult{Ok: false, ParseErrors: []ParseError{{FileName: spec.FileName, LineNo: token.LineNo, Message: "filter can be defined only once per specification", LineText: token.LineText()}}}
+			}
+			spec.FilterExpression = token.Value
 		}
 		return ParseResult{Ok: true}
 	})
 
 	converter := []func(*Token, *int, *gauge.Specification) ParseResult{
-		specConverter, scenarioConverter, stepConverter, contextConverter, commentConverter, tableHeaderConverter, tableRowConverter, tagConverter, dataTableFilterConverter, keywordConverter, tearDownConverter, tearDownStepConverter,
+		specConverter, scenarioConverter, stepConverter, contextConverter, commentConverter, tableHeaderConverter, tableRowConverter, tagConverter, filterConverter, keywordConverter, tearDownConverter, tearDownStepConverter,
 	}
 
 	return converter

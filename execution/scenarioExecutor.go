@@ -8,8 +8,7 @@ package execution
 
 import (
 	"fmt"
-
-	"github.com/getgauge/gauge/parser"
+	"os"
 
 	"errors"
 
@@ -62,8 +61,8 @@ func (e *scenarioExecutor) execute(i gauge.Item, r result.Result) {
 		setSkipInfoInResult(scenarioResult, scenario, e.errMap)
 		return
 	}
-	if !shouldExecuteForSpecDataTable(scenario) {
-		e.errMap.ScenarioErrs[scenario] = append([]error{errors.New("skipped Reason: Doesn't satisfy tags expr from spec_table_filter")}, e.errMap.ScenarioErrs[scenario]...)
+	if e.shouldBeSkipped(scenario) {
+		e.errMap.ScenarioErrs[scenario] = append([]error{errors.New("skipped reason: satisfy skip filter expression")}, e.errMap.ScenarioErrs[scenario]...)
 		setSkipInfoInResult(scenarioResult, scenario, e.errMap)
 		return
 	}
@@ -99,25 +98,14 @@ func (e *scenarioExecutor) execute(i gauge.Item, r result.Result) {
 	scenarioResult.UpdateExecutionTime()
 }
 
-func shouldExecuteForSpecDataTable(sc *gauge.Scenario) bool {
-	if !sc.SpecDataTableRow.IsInitialized() || len(sc.SpecDataTableFilter) == 0 {
-		return true
+func (e *scenarioExecutor) shouldBeSkipped(sc *gauge.Scenario) bool {
+	skipExpression := os.Getenv(env.GaugeSkipExpression)
+	if len(skipExpression) == 0 {
+		return false
 	}
-	// TODO(dsalin) maybe it is worth to move ValidateTagExpression to ScenarioFilterBasedOnTags methods or to SpecValidator
-	filter.ValidateTagExpression(sc.SpecDataTableFilter)
-	if cols, err := sc.SpecDataTableRow.Get(env.GaugeTableTagsColumnName()); err != nil || len(cols) == 0 {
-		return true
-	} else {
-		// TODO(dsalin) move parsing to TableCell new method similar to GetDynamicArgs(), something like GetTypeRepresentation()
-		tags := parser.SplitAndTrimTags(cols[0].GetValue())
-		tagValues := make([]string, 0)
-		for _, tagValue := range tags {
-			if len(tagValue) > 0 {
-				tagValues = append(tagValues, tagValue)
-			}
-		}
-		return filter.NewScenarioFilterBasedOnTags([]string{}, sc.SpecDataTableFilter).FilterTags(tagValues)
-	}
+	filter := filter.NewScenarioFilterBasedOnTags(nil, skipExpression)
+	specTags := e.currentExecutionInfo.GetCurrentSpec().GetTags()
+	return filter.FilterTags(append(specTags, sc.GetTags()...))
 }
 
 func (e *scenarioExecutor) initScenarioDataStore() *gauge_messages.ProtoExecutionResult {

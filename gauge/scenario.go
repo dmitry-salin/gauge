@@ -15,7 +15,7 @@ type Scenario struct {
 	Steps                     []*Step
 	Comments                  []*Comment
 	Tags                      *Tags
-	SpecDataTableFilter       string
+	FilterExpression          string
 	Items                     []Item
 	DataTable                 DataTable
 	SpecDataTableRow          Table
@@ -118,4 +118,23 @@ func (scn *Scenario) HasAnyHeading(headings []string) bool {
 		}
 	}
 	return false
+}
+
+func (scn *Scenario) GetTags() (tags []string) {
+	if scn.Tags != nil {
+		tags = append(tags, scn.Tags.Values()...)
+	}
+	if scn.ScenarioDataTableRow.IsInitialized() {
+		if tableTags, err := scn.ScenarioDataTableRow.GetTags(); err == nil && len(tableTags) == 1 {
+			tags = append(tags, tableTags[0]...)
+		}
+	}
+	return
+}
+
+func (scn *Scenario) GetName() (name string) {
+	if scn.Heading != nil {
+		name = scn.Heading.Value
+	}
+	return
 }

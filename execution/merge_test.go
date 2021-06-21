@@ -60,7 +60,7 @@ func TestAggregateDataTableScnStats(t *testing.T) {
 			{Scenario: &gm.ProtoScenario{ExecutionStatus: gm.ExecutionStatus_FAILED}},
 			{Scenario: &gm.ProtoScenario{
 				ExecutionStatus: gm.ExecutionStatus_SKIPPED,
-				SkipErrors:      []string{"spec_table_filter"},
+				SkipErrors:      []string{"skip filter"},
 			}},
 		},
 		"heading3": {{Scenario: &gm.ProtoScenario{
@@ -74,7 +74,7 @@ func TestAggregateDataTableScnStats(t *testing.T) {
 	aggregateDataTableScnStats(scns, res)
 
 	got := stat{failed: res.ScenarioFailedCount, skipped: res.ScenarioSkippedCount, total: res.ScenarioCount}
-	want := stat{failed: 3, skipped: 2, total: 8}
+	want := stat{failed: 3, skipped: 1, total: 7}
 
 	if !reflect.DeepEqual(got, want) {
 		t.Errorf("Aggregate data table scenario stats failed. Want: %v , Got: %v", want, got)

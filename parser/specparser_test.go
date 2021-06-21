@@ -24,7 +24,7 @@ type MySuite struct{}
 
 var _ = Suite(&MySuite{})
 
-func (s *MySuite) TestToCheckTagsInSpecLevel(c *C) {
+func (s *MySuite) TestToCheckTagsAtSpecLevel(c *C) {
 	tokens := []*Token{
 		{Kind: gauge.SpecKind, Value: "Spec Heading", LineNo: 1},
 		{Kind: gauge.TagKind, Args: []string{"tag1", "tag2"}, LineNo: 2},
@@ -41,7 +41,7 @@ func (s *MySuite) TestToCheckTagsInSpecLevel(c *C) {
 	c.Assert(spec.Tags.Values()[1], Equals, "tag2")
 }
 
-func (s *MySuite) TestToCheckTagsInScenarioLevel(c *C) {
+func (s *MySuite) TestToCheckTagsAtScenarioLevel(c *C) {
 	tokens := []*Token{
 		{Kind: gauge.SpecKind, Value: "Spec Heading", LineNo: 1},
 		{Kind: gauge.ScenarioKind, Value: "Scenario Heading", LineNo: 2},
@@ -58,19 +58,32 @@ func (s *MySuite) TestToCheckTagsInScenarioLevel(c *C) {
 	c.Assert(spec.Scenarios[0].Tags.Values()[1], Equals, "tag2")
 }
 
-func (s *MySuite) TestToCheckSpecTableFilterInScenarioLevel(c *C) {
+func (s *MySuite) TestToCheckFilterAtSpecLevel(c *C) {
 	tokens := []*Token{
 		{Kind: gauge.SpecKind, Value: "Spec Heading", LineNo: 1},
-		{Kind: gauge.ScenarioKind, Value: "Scenario Heading", LineNo: 2},
-		{Kind: gauge.DataTableFilterKind, Value: "tag1 & tag2", LineNo: 3},
+		{Kind: gauge.FilterKind, Value: "tag1 & tag2", LineNo: 2},
+		{Kind: gauge.ScenarioKind, Value: "Scenario Heading", LineNo: 3},
 		{Kind: gauge.StepKind, Value: "my step"},
 	}
 
 	spec, result, err := new(SpecParser).CreateSpecification(tokens, gauge.NewConceptDictionary(), "")
 	c.Assert(err, IsNil)
 	c.Assert(result.Ok, Equals, true)
+	c.Assert(spec.FilterExpression, Equals, "tag1 & tag2")
+}
 
-	c.Assert(spec.Scenarios[0].SpecDataTableFilter, Equals, "tag1 & tag2")
+func (s *MySuite) TestToCheckFilterAtScenarioLevel(c *C) {
+	tokens := []*Token{
+		{Kind: gauge.SpecKind, Value: "Spec Heading", LineNo: 1},
+		{Kind: gauge.ScenarioKind, Value: "Scenario Heading", LineNo: 2},
+		{Kind: gauge.FilterKind, Value: "tag1 & tag2", LineNo: 3},
+		{Kind: gauge.StepKind, Value: "my step"},
+	}
+
+	spec, result, err := new(SpecParser).CreateSpecification(tokens, gauge.NewConceptDictionary(), "")
+	c.Assert(err, IsNil)
+	c.Assert(result.Ok, Equals, true)
+	c.Assert(spec.Scenarios[0].FilterExpression, Equals, "tag1 & tag2")
 }
 
 func (s *MySuite) TestParsingConceptInSpec(c *C) {
@@ -126,7 +139,7 @@ func (s *MySuite) TestTableInputFromFileIfPathNotSpecified(c *C) {
 }
 
 func (s *MySuite) TestToSplitTagNames(c *C) {
-	allTags := SplitAndTrimTags("tag1 , tag2,   tag3")
+	allTags := gauge.SplitAndTrimTags("tag1 , tag2,   tag3")
 	c.Assert(allTags[0], Equals, "tag1")
 	c.Assert(allTags[1], Equals, "tag2")
 	c.Assert(allTags[2], Equals, "tag3")
@@ -704,7 +717,7 @@ func (s *MySuite) TestAddSpecTagsAndScenarioTags(c *C) {
 		&Token{Kind: gauge.SpecKind, Value: "Spec Heading", LineNo: 1},
 		&Token{Kind: gauge.TagKind, Args: []string{"tag1", "tag2"}, LineNo: 2},
 		&Token{Kind: gauge.ScenarioKind, Value: "Scenario Heading", LineNo: 3},
-		&Token{Kind: gauge.TagKind, Args: []string{"tag3", "tag4"}, LineNo: 2},
+		&Token{Kind: gauge.TagKind, Args: []string{"tag3", "tag4"}, LineNo: 4},
 		&Token{Kind: gauge.StepKind, Value: "Step"},
 	}
 
@@ -720,6 +733,36 @@ func (s *MySuite) TestAddSpecTagsAndScenarioTags(c *C) {
 	c.Assert(len(tags.Values()), Equals, 2)
 	c.Assert(tags.Values()[0], Equals, "tag3")
 	c.Assert(tags.Values()[1], Equals, "tag4")
+}
+
+func (s *MySuite) TestAddSpecFilter(c *C) {
+	tokens := []*Token{
+		{Kind: gauge.SpecKind, Value: "Spec Heading", LineNo: 1},
+		{Kind: gauge.FilterKind, Value: "tag1 & tag2", LineNo: 2},
+		{Kind: gauge.ScenarioKind, Value: "Scenario Heading", LineNo: 3},
+		{Kind: gauge.StepKind, Value: "Step"},
+	}
+
+	spec, result, err := new(SpecParser).CreateSpecification(tokens, gauge.NewConceptDictionary(), "")
+	c.Assert(err, IsNil)
+	c.Assert(result.Ok, Equals, true)
+	c.Assert(spec.FilterExpression, Equals, "tag1 & tag2")
+}
+
+func (s *MySuite) TestAddSpecFilterAndScenarioFilter(c *C) {
+	tokens := []*Token{
+		{Kind: gauge.SpecKind, Value: "Spec Heading", LineNo: 1},
+		{Kind: gauge.FilterKind, Value: "tag1 & tag2", LineNo: 2},
+		{Kind: gauge.ScenarioKind, Value: "Scenario Heading", LineNo: 3},
+		{Kind: gauge.FilterKind, Value: "tag3 & tag4", LineNo: 4},
+		{Kind: gauge.StepKind, Value: "Step"},
+	}
+
+	spec, result, err := new(SpecParser).CreateSpecification(tokens, gauge.NewConceptDictionary(), "")
+	c.Assert(err, IsNil)
+	c.Assert(result.Ok, Equals, true)
+	c.Assert(spec.FilterExpression, Equals, "tag1 & tag2")
+	c.Assert(spec.Scenarios[0].FilterExpression, Equals, "tag3 & tag4")
 }
 
 func (s *MySuite) TestErrorOnAddingDynamicParamterWithoutADataTable(c *C) {
@@ -1284,7 +1327,26 @@ tags: blah
 	c.Assert(spec.Tags.Values()[0], Equals, "tag1")
 }
 
-func (s *MySuite) TestScenarioWithRepeatedDataTableFilterDefinitions(c *C) {
+func (s *MySuite) TestSpecWithRepeatedFilterDefinitions(c *C) {
+	p := new(SpecParser)
+	spec, parseRes, err := p.Parse(`Spec Heading
+==============
+filter: tag1 && tag2
+
+* step
+filter: tag1 && tag2
+
+Scenario
+--------
+* step
+	`, gauge.NewConceptDictionary(), "")
+	c.Assert(err, IsNil)
+	c.Assert(len(parseRes.ParseErrors), Equals, 1)
+	c.Assert(parseRes.ParseErrors[0].Message, Equals, "filter can be defined only once per specification")
+	c.Assert(spec.FilterExpression, Equals, "tag1 && tag2")
+}
+
+func (s *MySuite) TestScenarioWithRepeatedFilterDefinitions(c *C) {
 	p := new(SpecParser)
 	spec, parseRes, err := p.Parse(`Spec Heading
 ==============
@@ -1293,15 +1355,14 @@ func (s *MySuite) TestScenarioWithRepeatedDataTableFilterDefinitions(c *C) {
 
 Scenario
 --------
-spec_table_filter: tag1 && tag2
+filter: tag1 && tag2
 * step
-spec_table_filter: tag1 && tag2
+filter: tag1 && tag2
 	`, gauge.NewConceptDictionary(), "")
 	c.Assert(err, IsNil)
 	c.Assert(len(parseRes.ParseErrors), Equals, 1)
-	c.Assert(parseRes.ParseErrors[0].Message, Equals, "Spec data table filter can be defined only once per scenario")
-
-	c.Assert(spec.Scenarios[0].SpecDataTableFilter, Equals, "tag1 && tag2")
+	c.Assert(parseRes.ParseErrors[0].Message, Equals, "filter can be defined only once per scenario")
+	c.Assert(spec.Scenarios[0].FilterExpression, Equals, "tag1 && tag2")
 }
 
 func (s *MySuite) TestDatatTableWithEmptyHeaders(c *C) {

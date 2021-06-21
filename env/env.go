@@ -38,8 +38,12 @@ const (
 	saveExecutionResult = "save_execution_result"
 	// CsvDelimiter holds delimiter used to parse csv files
 	CsvDelimiter = "csv_delimiter"
-	// GaugeTableTagsColumnName holds name of the data table column that stores the tags used to filter table rows
-	gaugeTableTagsColumnName       = "gauge_table_tags_column_name"
+	// gaugeTableTagsColumnName holds name of the data table column that stores the tags used to filter table rows
+	gaugeTableTagsColumnName = "gauge_table_tags_column_name"
+	// GaugeSuiteTags holds global tags that are set for each specification
+	GaugeSuiteTags = "gauge_suite_tags"
+	// GaugeSkipExpression holds tags expression that are used to skip scenarios at runtime
+	GaugeSkipExpression            = "gauge_skip_expression"
 	allowMultilineStep             = "allow_multiline_step"
 	allowScenarioDatatable         = "allow_scenario_datatable"
 	allowFilteredParallelExecution = "allow_filtered_parallel_execution"
@@ -112,6 +116,7 @@ func loadDefaultEnvVars() {
 	addEnvVar(saveExecutionResult, "false")
 	addEnvVar(CsvDelimiter, ",")
 	addEnvVar(gaugeTableTagsColumnName, "tags")
+	addEnvVar(GaugeSkipExpression, "")
 	addEnvVar(allowMultilineStep, "false")
 	addEnvVar(allowScenarioDatatable, "false")
 	addEnvVar(allowFilteredParallelExecution, "false")

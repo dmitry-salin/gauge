@@ -35,21 +35,35 @@ type scenariosFilter struct {
 }
 
 func (tf *tagFilterForParallelRun) filter(specs []*gauge.Specification) ([]*gauge.Specification, []*gauge.Specification) {
-	return filterByTags(tf.tagExp, specs)
+	return filterByTags(specs, tf.tagExp)
 }
 
 func (tagsFilter *tagsFilter) filter(specs []*gauge.Specification) []*gauge.Specification {
-	specs, _ = filterByTags(tagsFilter.tagExp, specs)
+	specs, _ = filterByTags(specs, tagsFilter.tagExp)
 	return specs
 }
 
-func filterByTags(tagExpression string, specs []*gauge.Specification) ([]*gauge.Specification, []*gauge.Specification) {
-	if tagExpression != "" {
-		logger.Debugf(true, "Applying tags filter: %s", tagExpression)
-		ValidateTagExpression(tagExpression)
-		return filterSpecsByTags(specs, tagExpression)
+func filterByTags(specs []*gauge.Specification, tagExpression string) ([]*gauge.Specification, []*gauge.Specification) {
+	filteredSpecs := make([]*gauge.Specification, 0)
+	otherSpecs := make([]*gauge.Specification, 0)
+	for _, spec := range specs {
+		specWithFilteredItems, specWithOtherItems := spec.Filter(NewScenarioFilterBasedOnTags(spec, tagExpression))
+		if len(specWithFilteredItems.Scenarios) != 0 {
+			filteredSpecs = append(filteredSpecs, specWithFilteredItems)
+		}
+		if len(specWithOtherItems.Scenarios) != 0 {
+			otherSpecs = append(otherSpecs, specWithOtherItems)
+		}
 	}
-	return specs, specs
+	return adjustTableIndexes(filteredSpecs), otherSpecs
+}
+
+func adjustTableIndexes(specs []*gauge.Specification) []*gauge.Specification {
+	specsMap := make(map[string]int)
+	for _, spec := range specs {
+		spec.SetTableIndex(specsMap)
+	}
+	return specs
 }
 
 func (groupFilter *specsGroupFilter) filter(specs []*gauge.Specification) []*gauge.Specification {

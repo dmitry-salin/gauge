@@ -59,7 +59,7 @@ func (parser *SpecParser) initialize() {
 	parser.processors[gauge.TableHeader] = processTable
 	parser.processors[gauge.TableRow] = processTable
 	parser.processors[gauge.DataTableKind] = processDataTable
-	parser.processors[gauge.DataTableFilterKind] = processDataTableFilter
+	parser.processors[gauge.FilterKind] = processFilter
 	parser.processors[gauge.TearDownKind] = processTearDown
 }
 
@@ -119,7 +119,7 @@ func (parser *SpecParser) GenerateTokens(specText, fileName string) ([]*Token, [
 			}
 			newToken = &Token{Kind: gauge.TagKind, LineNo: parser.lineNo, Lines: []string{line}, Value: strings.TrimSpace(trimmedLine[startIndex:]), SpanEnd: parser.lineNo}
 		} else if found, startIndex := parser.checkDataTableFilter(trimmedLine); found {
-			newToken = &Token{Kind: gauge.DataTableFilterKind, LineNo: parser.lineNo, Lines: []string{line}, Value: strings.TrimSpace(trimmedLine[startIndex:]), SpanEnd: parser.lineNo}
+			newToken = &Token{Kind: gauge.FilterKind, LineNo: parser.lineNo, Lines: []string{line}, Value: strings.TrimSpace(trimmedLine[startIndex:]), SpanEnd: parser.lineNo}
 		} else if parser.isTableRow(trimmedLine) {
 			kind := parser.tokenKindBasedOnCurrentState(tableScope, gauge.TableRow, gauge.TableHeader)
 			newToken = &Token{Kind: kind, LineNo: parser.lineNo, Lines: []string{line}, Value: strings.TrimSpace(trimmedLine), SpanEnd: parser.lineNo}
@@ -166,8 +166,8 @@ func (parser *SpecParser) checkTag(text string) (bool, int) {
 
 func (parser *SpecParser) checkDataTableFilter(text string) (bool, int) {
 	lowerCased := strings.ToLower
-	filterColon := "spec_table_filter:"
-	filterSpaceColon := "spec_table_filter :"
+	filterColon := "filter:"
+	filterSpaceColon := "filter :"
 	if filterStartIndex := strings.Index(lowerCased(text), filterColon); filterStartIndex == 0 {
 		return true, len(filterColon)
 	} else if filterStartIndex := strings.Index(lowerCased(text), filterSpaceColon); filterStartIndex == 0 {
