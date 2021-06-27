@@ -295,11 +295,6 @@ func (s *MySuite) TestToEvaluateTagExpressionWithFailingTagExpression(c *C) {
 	c.Assert(filter.FilterTags([]string{"tag1", "tag2", "tag7", "tag4"}), Equals, false)
 }
 
-func (s *MySuite) TestToEvaluateTagExpressionWithWrongTagExpression(c *C) {
-	filter := &ScenarioFilterBasedOnTags{expression: "tag1 & (((tag3 | tag2) & (tag5 | tag4 | tag3) & tag7) & tag6)"}
-	c.Assert(filter.FilterTags([]string{"tag1", "tag2", "tag7", "tag4"}), Equals, false)
-}
-
 func (s *MySuite) TestToEvaluateTagExpressionConsistingOfSpaces(c *C) {
 	filter := &ScenarioFilterBasedOnTags{expression: "tag 1 & tag3"}
 	c.Assert(filter.FilterTags([]string{"tag 1", "tag3"}), Equals, true)
@@ -310,10 +305,38 @@ func (s *MySuite) TestToEvaluateTagExpressionConsistingLogicalNotOperator(c *C) 
 	c.Assert(filter.FilterTags([]string{"tag2", "tag3"}), Equals, true)
 }
 
+func (s *MySuite) TestToEvaluateTagExpressionConsistingLogicalXorOperator(c *C) {
+	filter := &ScenarioFilterBasedOnTags{expression: "!(tag1 ^ tag2)"}
+	c.Assert(filter.FilterTags([]string{"tag1", "tag2"}), Equals, true)
+
+	filter = &ScenarioFilterBasedOnTags{expression: "!(tag1 ^ tag2)"}
+	c.Assert(filter.FilterTags([]string{"tag3", "tag4"}), Equals, true)
+
+	filter = &ScenarioFilterBasedOnTags{expression: "!(tag1 ^ tag2)"}
+	c.Assert(filter.FilterTags([]string{"tag1", "tag3"}), Equals, false)
+
+	filter = &ScenarioFilterBasedOnTags{expression: "!(tag1 ^ tag2)"}
+	c.Assert(filter.FilterTags([]string{"tag3", "tag2"}), Equals, false)
+}
+
+func (s *MySuite) TestToEvaluateTagExpressionConsistingManyLogicalXorOperator(c *C) {
+	filter := &ScenarioFilterBasedOnTags{expression: "tag1 ^ tag2 ^ tag3"}
+	c.Assert(filter.FilterTags([]string{"tag1", "tag2", "tag3"}), Equals, true)
+
+	filter = &ScenarioFilterBasedOnTags{expression: "tag1 ^ (tag2 ^ tag3)"}
+	c.Assert(filter.FilterTags([]string{"tag1", "tag2", "tag4"}), Equals, false)
+
+	filter = &ScenarioFilterBasedOnTags{expression: "tag1 ^ !(tag2 ^ tag3)"}
+	c.Assert(filter.FilterTags([]string{"tag1", "tag2", "tag4"}), Equals, true)
+
+	filter = &ScenarioFilterBasedOnTags{expression: "tag1 ^ tag2 ^ tag3 ^ tag4"}
+	c.Assert(filter.FilterTags([]string{"tag1", "tag2", "tag4"}), Equals, true)
+}
+
 func (s *MySuite) TestToEvaluateTagExpressionConsistingManyLogicalNotOperator(c *C) {
 	filter := &ScenarioFilterBasedOnTags{expression: "!(!(tag 1 | !(tag6 | !(tag5))) & tag2)"}
 	value := filter.FilterTags([]string{"tag2", "tag4"})
-	c.Assert(value, Equals, true)
+	c.Assert(value, Equals, false)
 }
 
 func (s *MySuite) TestToEvaluateTagExpressionConsistingParallelLogicalNotOperator(c *C) {
@@ -368,13 +391,57 @@ func (s *MySuite) TestParseTagExpression(c *C) {
 	}
 }
 
-func (s *MySuite) TestToFilterSpecsByWrongTagExpression(c *C) {
+func (s *MySuite) TestToFilterSpecsByWrongTagExpressionWithMissingParentheses(c *C) {
 	tagsMap := map[string]bool{"{tag1}": true, "{tag2}": true}
+
 	filter := &ScenarioFilterBasedOnTags{expression: "(tag1 & tag2"}
 	filter.replaceSpecialChar()
 	_, err := filter.formatAndEvaluateExpression(tagsMap, filter.isTagPresent)
+	c.Assert(err.Error(), Equals, "invalid expression: `(tag1 & tag2` \nmissing parentheses")
 
-	c.Assert(err.Error(), Equals, "invalid expression: `(tag1 & tag2` \neval:1:5: expected ')', found newline")
+	filter = &ScenarioFilterBasedOnTags{expression: "("}
+	filter.replaceSpecialChar()
+	_, err = filter.formatAndEvaluateExpression(tagsMap, filter.isTagPresent)
+	c.Assert(err.Error(), Equals, "invalid expression: `(` \nmissing parentheses")
+
+	filter = &ScenarioFilterBasedOnTags{expression: "!(("}
+	filter.replaceSpecialChar()
+	_, err = filter.formatAndEvaluateExpression(tagsMap, filter.isTagPresent)
+	c.Assert(err.Error(), Equals, "invalid expression: `!((` \nmissing parentheses")
+
+	filter = &ScenarioFilterBasedOnTags{expression: "!(!("}
+	filter.replaceSpecialChar()
+	_, err = filter.formatAndEvaluateExpression(tagsMap, filter.isTagPresent)
+	c.Assert(err.Error(), Equals, "invalid expression: `!(!(` \nmissing parentheses")
+
+	filter = &ScenarioFilterBasedOnTags{expression: "(tag3 || (tag1 & tag2)"}
+	filter.replaceSpecialChar()
+	_, err = filter.formatAndEvaluateExpression(tagsMap, filter.isTagPresent)
+	c.Assert(err.Error(), Equals, "invalid expression: `(tag3 || (tag1 & tag2)` \nmissing parentheses")
+}
+
+func (s *MySuite) TestToFilterSpecsByWrongTagExpressionWithMissingLogicalOperators(c *C) {
+	tagsMap := map[string]bool{"{tag1}": true, "{tag2}": true}
+
+	filter := &ScenarioFilterBasedOnTags{expression: "(tag1)(tag2)"}
+	filter.replaceSpecialChar()
+	_, err := filter.formatAndEvaluateExpression(tagsMap, filter.isTagPresent)
+	c.Assert(err.Error(), Equals, "invalid expression: `(tag1)(tag2)` \nmissing logical operators")
+
+	filter = &ScenarioFilterBasedOnTags{expression: "!(tag1)(tag2)"}
+	filter.replaceSpecialChar()
+	_, err = filter.formatAndEvaluateExpression(tagsMap, filter.isTagPresent)
+	c.Assert(err.Error(), Equals, "invalid expression: `!(tag1)(tag2)` \nmissing logical operators")
+
+	filter = &ScenarioFilterBasedOnTags{expression: "!(tag1)!tag2"}
+	filter.replaceSpecialChar()
+	_, err = filter.formatAndEvaluateExpression(tagsMap, filter.isTagPresent)
+	c.Assert(err.Error(), Equals, "invalid expression: `!(tag1)!tag2` \nmissing logical operators")
+
+	filter = &ScenarioFilterBasedOnTags{expression: "(tag1)(tag2)"}
+	filter.replaceSpecialChar()
+	_, err = filter.formatAndEvaluateExpression(tagsMap, filter.isTagPresent)
+	c.Assert(err.Error(), Equals, "invalid expression: `(tag1)(tag2)` \nmissing logical operators")
 }
 
 func (s *MySuite) TestFilterTags(c *C) {
