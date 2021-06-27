@@ -257,11 +257,6 @@ func (spec *Specification) GetTags() []string {
 	if spec.Tags != nil {
 		tags = append(tags, spec.Tags.Values()...)
 	}
-	if spec.DataTable.Table.IsInitialized() {
-		if tableTags, err := spec.DataTable.Table.GetTags(); err == nil && len(tableTags) == 1 {
-			tags = append(tags, tableTags[0]...)
-		}
-	}
 	return tags
 }
 

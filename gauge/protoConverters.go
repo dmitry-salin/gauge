@@ -272,13 +272,12 @@ func ConvertToProtoStepValue(stepValue *StepValue) *gauge_messages.ProtoStepValu
 
 func newProtoSpec(specification *Specification) *gauge_messages.ProtoSpec {
 	return &gauge_messages.ProtoSpec{
-		Items:         make([]*gauge_messages.ProtoItem, 0),
 		SpecHeading:   specification.Heading.Value,
+		Items:         make([]*gauge_messages.ProtoItem, 0),
 		IsTableDriven: specification.DataTable.IsInitialized(),
 		FileName:      specification.FileName,
-		Tags:          getTags(specification.Tags),
+		Tags:          specification.GetTags(),
 	}
-
 }
 
 func NewSpecResult(specification *Specification) *result.SpecResult {
@@ -293,22 +292,15 @@ func NewProtoScenario(scenario *Scenario) *gauge_messages.ProtoScenario {
 	return &gauge_messages.ProtoScenario{
 		ScenarioHeading: scenario.Heading.Value,
 		Failed:          false,
-		Skipped:         false,
-		Tags:            getTags(scenario.Tags),
 		Contexts:        make([]*gauge_messages.ProtoItem, 0),
+		Tags:            scenario.GetTags(),
 		ExecutionTime:   0,
-		TearDownSteps:   make([]*gauge_messages.ProtoItem, 0),
+		Skipped:         false,
 		SkipErrors:      make([]string, 0),
+		TearDownSteps:   make([]*gauge_messages.ProtoItem, 0),
 		Span:            &gauge_messages.Span{Start: int64(scenario.Span.Start), End: int64(scenario.Span.End)},
 		ExecutionStatus: gauge_messages.ExecutionStatus_NOTEXECUTED,
 	}
-}
-
-func getTags(tags *Tags) []string {
-	if tags != nil {
-		return tags.Values()
-	}
-	return make([]string, 0)
 }
 
 func ConvertToProtoExecutionArg(args []*ExecutionArg) []*gauge_messages.ExecutionArg {

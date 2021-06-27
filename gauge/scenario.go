@@ -124,6 +124,11 @@ func (scn *Scenario) GetTags() (tags []string) {
 	if scn.Tags != nil {
 		tags = append(tags, scn.Tags.Values()...)
 	}
+	if scn.SpecDataTableRow.IsInitialized() {
+		if tableTags, err := scn.SpecDataTableRow.GetTags(); err == nil && len(tableTags) == 1 {
+			tags = append(tags, tableTags[0]...)
+		}
+	}
 	if scn.ScenarioDataTableRow.IsInitialized() {
 		if tableTags, err := scn.ScenarioDataTableRow.GetTags(); err == nil && len(tableTags) == 1 {
 			tags = append(tags, tableTags[0]...)

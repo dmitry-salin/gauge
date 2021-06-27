@@ -27,8 +27,11 @@ func (tags *Tags) Kind() TokenKind {
 	return TagKind
 }
 
-func SplitAndTrimTags(tag string) []string {
-	listOfTags := strings.Split(tag, ",")
+func SplitAndTrimTags(tags string) []string {
+	if len(tags) == 0 {
+		return []string{}
+	}
+	listOfTags := strings.Split(tags, ",")
 	for i, aTag := range listOfTags {
 		listOfTags[i] = strings.TrimSpace(aTag)
 	}
